@@ -1,0 +1,330 @@
+{
+  "source": "CERTIFICATE DETAILS PAS_pwd-removed.xlsx",
+  "source_sheet": "Clients",
+  "records": 276,
+  "unique_companies": 259,
+  "public_certificate_numbers": 234,
+  "duplicate_certificate_numbers": [
+    "PASGM20010003",
+    "PASQM20010004",
+    "PASQM20010022",
+    "PASQM20010111",
+    "PASQM20010112",
+    "PASQM20010113",
+    "PASQM20010114",
+    "PASQM20010115",
+    "PASQM20010116",
+    "PASQM20010117",
+    "PASQM20010118",
+    "PASQM20010119"
+  ],
+  "records_with_duplicate_numbers": 25,
+  "records_missing_certificate_number": 17,
+  "standards": {
+    "13485": 3,
+    "14001": 1,
+    "17024": 1,
+    "18001": 2,
+    "20001": 3,
+    "22000": 5,
+    "27001": 3,
+    "45001": 1,
+    "9001": 248,
+    "CE": 1,
+    "GMP": 4,
+    "OTHER": 4
+  },
+  "issue_count": 56,
+  "issues": [
+    {
+      "row": 5,
+      "type": "duplicate_certificate_number",
+      "value": "PASQM20010004"
+    },
+    {
+      "row": 6,
+      "type": "duplicate_certificate_number",
+      "value": "PASGM20010003"
+    },
+    {
+      "row": 10,
+      "type": "missing_certificate_number",
+      "value": "-"
+    },
+    {
+      "row": 11,
+      "type": "missing_certificate_number",
+      "value": "-"
+    },
+    {
+      "row": 15,
+      "type": "missing_certificate_number",
+      "value": null
+    },
+    {
+      "row": 18,
+      "type": "missing_certificate_number",
+      "value": "-"
+    },
+    {
+      "row": 18,
+      "type": "unmapped_standard",
+      "value": "-"
+    },
+    {
+      "row": 22,
+      "type": "missing_certificate_number",
+      "value": "-"
+    },
+    {
+      "row": 22,
+      "type": "unmapped_standard",
+      "value": "-"
+    },
+    {
+      "row": 31,
+      "type": "duplicate_certificate_number",
+      "value": "PASQM20010022"
+    },
+    {
+      "row": 47,
+      "type": "duplicate_certificate_number",
+      "value": "PASGM20010003"
+    },
+    {
+      "row": 61,
+      "type": "unparsed_date",
+      "field": "draft_date",
+      "value": "31/04/2021"
+    },
+    {
+      "row": 61,
+      "type": "unparsed_date",
+      "field": "issue_date",
+      "value": "31/04/2021"
+    },
+    {
+      "row": 61,
+      "type": "unparsed_date",
+      "field": "first_surveillance_date",
+      "value": "31/04/2022"
+    },
+    {
+      "row": 61,
+      "type": "unparsed_date",
+      "field": "second_surveillance_date",
+      "value": "31/04/2023"
+    },
+    {
+      "row": 61,
+      "type": "unparsed_date",
+      "field": "expiry_date",
+      "value": "31/04/2024"
+    },
+    {
+      "row": 62,
+      "type": "unparsed_date",
+      "field": "draft_date",
+      "value": "31/04/2021"
+    },
+    {
+      "row": 62,
+      "type": "unparsed_date",
+      "field": "issue_date",
+      "value": "31/04/2021"
+    },
+    {
+      "row": 62,
+      "type": "unparsed_date",
+      "field": "first_surveillance_date",
+      "value": "31/04/2022"
+    },
+    {
+      "row": 62,
+      "type": "unparsed_date",
+      "field": "second_surveillance_date",
+      "value": "31/04/2023"
+    },
+    {
+      "row": 62,
+      "type": "unparsed_date",
+      "field": "expiry_date",
+      "value": "31/04/2024"
+    },
+    {
+      "row": 74,
+      "type": "duplicate_certificate_number",
+      "value": "PASQM20010022"
+    },
+    {
+      "row": 89,
+      "type": "duplicate_certificate_number",
+      "value": "PASQM20010004"
+    },
+    {
+      "row": 90,
+      "type": "duplicate_certificate_number",
+      "value": "PASGM20010003"
+    },
+    {
+      "row": 91,
+      "type": "unmapped_standard",
+      "value": ""
+    },
+    {
+      "row": 139,
+      "type": "duplicate_certificate_number",
+      "value": "PASQM20010111"
+    },
+    {
+      "row": 140,
+      "type": "duplicate_certificate_number",
+      "value": "PASQM20010112"
+    },
+    {
+      "row": 141,
+      "type": "duplicate_certificate_number",
+      "value": "PASQM20010113"
+    },
+    {
+      "row": 142,
+      "type": "duplicate_certificate_number",
+      "value": "PASQM20010114"
+    },
+    {
+      "row": 143,
+      "type": "duplicate_certificate_number",
+      "value": "PASQM20010115"
+    },
+    {
+      "row": 144,
+      "type": "duplicate_certificate_number",
+      "value": "PASQM20010116"
+    },
+    {
+      "row": 145,
+      "type": "duplicate_certificate_number",
+      "value": "PASQM20010117"
+    },
+    {
+      "row": 146,
+      "type": "duplicate_certificate_number",
+      "value": "PASQM20010118"
+    },
+    {
+      "row": 147,
+      "type": "duplicate_certificate_number",
+      "value": "PASQM20010119"
+    },
+    {
+      "row": 148,
+      "type": "duplicate_certificate_number",
+      "value": "PASQM20010111"
+    },
+    {
+      "row": 163,
+      "type": "duplicate_certificate_number",
+      "value": "PASQM20010112"
+    },
+    {
+      "row": 164,
+      "type": "duplicate_certificate_number",
+      "value": "PASQM20010113"
+    },
+    {
+      "row": 165,
+      "type": "duplicate_certificate_number",
+      "value": "PASQM20010114"
+    },
+    {
+      "row": 166,
+      "type": "duplicate_certificate_number",
+      "value": "PASQM20010115"
+    },
+    {
+      "row": 167,
+      "type": "duplicate_certificate_number",
+      "value": "PASQM20010116"
+    },
+    {
+      "row": 168,
+      "type": "duplicate_certificate_number",
+      "value": "PASQM20010117"
+    },
+    {
+      "row": 169,
+      "type": "duplicate_certificate_number",
+      "value": "PASQM20010118"
+    },
+    {
+      "row": 170,
+      "type": "duplicate_certificate_number",
+      "value": "PASQM20010119"
+    },
+    {
+      "row": 260,
+      "type": "missing_certificate_number",
+      "value": null
+    },
+    {
+      "row": 261,
+      "type": "missing_certificate_number",
+      "value": null
+    },
+    {
+      "row": 262,
+      "type": "missing_certificate_number",
+      "value": null
+    },
+    {
+      "row": 263,
+      "type": "missing_certificate_number",
+      "value": null
+    },
+    {
+      "row": 264,
+      "type": "missing_certificate_number",
+      "value": null
+    },
+    {
+      "row": 265,
+      "type": "missing_certificate_number",
+      "value": null
+    },
+    {
+      "row": 266,
+      "type": "missing_certificate_number",
+      "value": null
+    },
+    {
+      "row": 267,
+      "type": "missing_certificate_number",
+      "value": null
+    },
+    {
+      "row": 268,
+      "type": "missing_certificate_number",
+      "value": null
+    },
+    {
+      "row": 269,
+      "type": "missing_certificate_number",
+      "value": null
+    },
+    {
+      "row": 270,
+      "type": "missing_certificate_number",
+      "value": null
+    },
+    {
+      "row": 277,
+      "type": "missing_certificate_number",
+      "value": null
+    },
+    {
+      "row": 277,
+      "type": "unmapped_standard",
+      "value": ""
+    }
+  ]
+}
