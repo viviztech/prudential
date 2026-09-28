@@ -29,9 +29,9 @@ export async function generateMetadata(): Promise<Metadata> {
   },
   description: siteDescription,
   icons: {
-    icon: "/ps-logo.jpg",
-    shortcut: "/ps-logo.jpg",
-    apple: "/ps-logo.jpg",
+    icon: "/pas-favicon.png",
+    shortcut: "/pas-favicon.png",
+    apple: "/pas-favicon.png",
   },
     openGraph: {
       title: "Certification standards explained | Prudential ISO",
