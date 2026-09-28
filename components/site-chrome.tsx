@@ -1,9 +1,10 @@
 /* eslint-disable @next/next/no-img-element */
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Mail, MapPin, Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { MarketingShell } from "@/components/marketing-blocks";
+import { CONTACT_DETAILS } from "@/lib/contact";
 
 export function SiteBrand({ inverse = false }: { inverse?: boolean }) {
   return (
@@ -33,8 +34,13 @@ export function SiteHeader() {
 export function SiteFooter() {
   return (
     <footer className="border-t border-[#dfe1f0] bg-white">
-      <MarketingShell className="grid gap-10 py-12 sm:grid-cols-[1fr_auto] sm:items-center">
+      <MarketingShell className="grid gap-10 py-12 lg:grid-cols-[1fr_1fr_auto] lg:items-start">
         <div><SiteBrand /><p className="mt-5 max-w-md text-sm leading-6 text-[#626992]">Clear guidance for choosing a certification, preparing the management system and verifying an issued record.</p></div>
+        <address className="grid gap-3 text-sm not-italic leading-6 text-[#555d86]">
+          <span className="flex items-start gap-3"><MapPin className="mt-1 size-4 shrink-0 text-[#202eff]" /><span>{CONTACT_DETAILS.address}</span></span>
+          <a className="flex items-center gap-3 hover:text-[#202eff]" href={`tel:${CONTACT_DETAILS.phone}`}><Phone className="size-4 shrink-0 text-[#202eff]" />{CONTACT_DETAILS.phoneDisplay}</a>
+          <a className="flex items-center gap-3 hover:text-[#202eff]" href={`mailto:${CONTACT_DETAILS.email}`}><Mail className="size-4 shrink-0 text-[#202eff]" />{CONTACT_DETAILS.email}</a>
+        </address>
         <div className="sm:text-right"><Badge variant="outline">Standards explained</Badge><nav className="!mt-5 !flex flex-wrap gap-5 text-sm font-semibold text-[#555d86] sm:justify-end" aria-label="Footer navigation"><Link href="/certifications">Certifications</Link><Link href="/verify">Verify</Link><Link href="/enquire">Enquire</Link><Link href="/login">Admin</Link></nav></div>
       </MarketingShell>
     </footer>

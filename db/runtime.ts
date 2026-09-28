@@ -211,7 +211,7 @@ export async function ensureDatabase() {
     `INSERT OR IGNORE INTO certificate_settings
       (id, brand_name, office_address, registration_heading, intro_wording,
        conformity_wording, footer_wording, signatory_name, signatory_title, updated_at)
-     VALUES (1, 'Prudential ISO', '', 'Certificate of Registration',
+     VALUES (1, 'Prudential ISO', '1&1A, UR Nagar Extn, Anna Nagar W Ext St, Chennai, Tamil Nadu 600101', 'Certificate of Registration',
        'This is to certify that the management system of',
        'has been assessed and found to conform to the requirements of',
        'This certificate remains the property of Prudential ISO and is subject to the certification terms and conditions.',

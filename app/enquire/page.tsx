@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { ArrowRight, CheckCircle2, ClipboardCheck, FileText, Printer } from "lucide-react";
+import { ArrowRight, CheckCircle2, ClipboardCheck, FileText, Mail, MapPin, Phone, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -7,6 +7,7 @@ import { NativeSelect } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
 import { SiteFooter, SiteHeader } from "@/components/site-chrome";
 import { CERTIFICATION_CATALOG, CERTIFICATION_NAMES } from "../../lib/certifications";
+import { CONTACT_DETAILS } from "../../lib/contact";
 
 export const metadata: Metadata = { title: "Start an enquiry" };
 
@@ -48,6 +49,11 @@ export default async function EnquirePage({ searchParams }: EnquireProps) {
         <aside className="self-start overflow-hidden rounded-lg bg-[#111a4d] text-white shadow-sm">
           <div className="border-b border-white/10 p-7"><p className="mb-3 text-[10px] font-extrabold uppercase tracking-[.16em] text-[#61cabe]">What happens next?</p><h2 className="m-0 font-serif text-3xl font-medium">A simple path to issue.</h2></div>
           <ol className="m-0 list-none divide-y divide-white/10 p-0">{[[ClipboardCheck,"Review","We confirm the certification requirement."],[FileText,"Draft","We prepare the company and scope details."],[CheckCircle2,"Approval","You approve the certificate information."],[Printer,"Issue & print","We create the dates, number, and final certificate."]].map(([Icon,title,text], index) => { const ItemIcon = Icon as typeof ClipboardCheck; return <li className="grid grid-cols-[42px_1fr] gap-4 p-6" key={String(title)}><span className="grid size-10 place-items-center rounded-full bg-white/8 text-[#e0a63a]"><ItemIcon className="size-5" /></span><div><strong className="text-sm">{index + 1}. {String(title)}</strong><p className="mb-0 mt-1 text-xs leading-5 text-[#a9bbc2]">{String(text)}</p></div></li>; })}</ol>
+          <address className="grid gap-3 border-t border-white/10 p-6 text-sm not-italic leading-6 text-[#c9d2ee]">
+            <span className="flex items-start gap-3"><MapPin className="mt-1 size-4 shrink-0 text-[#61cabe]" />{CONTACT_DETAILS.address}</span>
+            <a className="flex items-center gap-3 hover:text-white" href={`tel:${CONTACT_DETAILS.phone}`}><Phone className="size-4 text-[#61cabe]" />{CONTACT_DETAILS.phoneDisplay}</a>
+            <a className="flex items-center gap-3 hover:text-white" href={`mailto:${CONTACT_DETAILS.email}`}><Mail className="size-4 text-[#61cabe]" />{CONTACT_DETAILS.email}</a>
+          </address>
         </aside>
       </section>
       <SiteFooter />

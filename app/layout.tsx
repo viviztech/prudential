@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
+import { CONTACT_DETAILS } from "@/lib/contact";
 import "./globals.css";
 
 const siteDescription =
@@ -56,6 +57,27 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "Organization",
+              name: "Prudential Assessment Services LLP",
+              url: "https://prudentialiso.com",
+              email: CONTACT_DETAILS.email,
+              telephone: CONTACT_DETAILS.phone,
+              address: {
+                "@type": "PostalAddress",
+                streetAddress: "1&1A, UR Nagar Extn, Anna Nagar W Ext St",
+                addressLocality: "Chennai",
+                addressRegion: "Tamil Nadu",
+                postalCode: "600101",
+                addressCountry: "IN",
+              },
+            }).replace(/</g, "\\u003c"),
+          }}
+        />
         <script
           dangerouslySetInnerHTML={{
             __html:
