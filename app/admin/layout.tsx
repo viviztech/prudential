@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { getAdminUser } from "../admin-user";
 import { chatGPTSignOutPath } from "../chatgpt-auth";
+import { isSelfHostedAuthEnabled } from "../admin-user";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +17,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     ["Certificates", "/admin/certificates", FileCheck2],
     ["Certificate settings", "/admin/settings", Settings2],
   ] as const;
-  const logoutHref = import.meta.env.DEV ? "/login?signed_out=1" : chatGPTSignOutPath("/login?signed_out=1");
+  const logoutHref = isSelfHostedAuthEnabled()
+    ? "/api/auth/logout"
+    : import.meta.env.DEV ? "/login?signed_out=1" : chatGPTSignOutPath("/login?signed_out=1");
 
   return (
     <main className="admin-shell min-h-screen bg-[#f4f5fb] lg:grid lg:grid-cols-[280px_1fr]">

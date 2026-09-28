@@ -21,6 +21,7 @@ export default async function LoginPage({ searchParams }: LoginProps) {
     ? params.return_to
     : "/admin";
   const user = await getChatGPTUser();
+  const selfHosted = Boolean(process.env.ADMIN_PASSWORD && process.env.AUTH_SECRET);
   const signInHref = import.meta.env.DEV ? "/admin" : chatGPTSignInPath(returnTo);
   const switchAccountHref = import.meta.env.DEV
     ? "/admin"
@@ -52,9 +53,21 @@ export default async function LoginPage({ searchParams }: LoginProps) {
               This account is not authorized. Sign out and continue with the approved admin email.
             </div>
           ) : null}
+          {params.error === "invalid" ? (
+            <div className="auth-message error-banner">The password is incorrect. Please try again.</div>
+          ) : null}
           {params.signed_out === "1" ? <div className="auth-message success">You have been logged out.</div> : null}
 
-          {user && params.error !== "unauthorized" ? (
+          {selfHosted ? (
+            <form action="/api/auth/login" method="post" className="grid gap-4">
+              <input type="hidden" name="return_to" value={returnTo} />
+              <label className="grid gap-2">
+                <span>Admin password</span>
+                <input className="h-11 rounded-md border border-slate-300 px-3" name="password" type="password" autoComplete="current-password" required autoFocus />
+              </label>
+              <Button className="auth-button" type="submit">Sign in securely</Button>
+            </form>
+          ) : user && params.error !== "unauthorized" ? (
             <Button asChild className="auth-button"><Link href={returnTo}>Continue to admin</Link></Button>
           ) : params.error === "unauthorized" ? (
             <Button asChild className="auth-button"><a href={switchAccountHref}>Use another account</a></Button>
@@ -63,7 +76,7 @@ export default async function LoginPage({ searchParams }: LoginProps) {
           )}
 
           <div className="auth-links">
-            <Link href={`/forgot-password?return_to=${encodeURIComponent(returnTo)}`}>Forgot password?</Link>
+            {!selfHosted ? <Link href={`/forgot-password?return_to=${encodeURIComponent(returnTo)}`}>Forgot password?</Link> : null}
             <Link href="/">Return to website</Link>
           </div>
           <p className="auth-security-note"><span aria-hidden="true">✓</span> Access is restricted to one approved administrator.</p>
