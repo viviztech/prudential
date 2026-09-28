@@ -12,16 +12,16 @@
 }
 
 :root {
-  --navy: #0d2a3d;
-  --navy-deep: #071c2a;
+  --navy: #111a4d;
+  --navy-deep: #0a1033;
   --blue: #1f6f91;
-  --teal: #0f9a8b;
-  --gold: #e0a63a;
-  --paper: #f4f7f6;
+  --teal: #202eff;
+  --gold: #7d84ff;
+  --paper: #f7f8ff;
   --white: #ffffff;
-  --ink: #18303d;
-  --muted: #5e727c;
-  --line: #d8e2e2;
+  --ink: #1b2352;
+  --muted: #626992;
+  --line: #dfe1f0;
   --display: Georgia, "Times New Roman", serif;
   --body: "Segoe UI", Arial, sans-serif;
 }
@@ -31,7 +31,7 @@ html { scroll-behavior: smooth; }
 body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--body); }
 a { color: inherit; text-decoration: none; }
 button, input, select, textarea { font: inherit; }
-:focus-visible { outline: 3px solid #65c8bb; outline-offset: 3px; }
+:focus-visible { outline: 3px solid #8f96ff; outline-offset: 3px; }
 .shell { width: min(1180px, calc(100% - 40px)); margin-inline: auto; }
 
 /* Public homepage — a controlled certificate dossier, not generic corporate chrome. */
@@ -367,7 +367,7 @@ nav a:hover { color: var(--teal); }
 .auth-page { min-height: 100vh; display: grid; grid-template-columns: minmax(340px, .92fr) minmax(460px, 1.08fr); background: white; }
 .auth-brand-panel { position: relative; min-height: 100vh; padding: 46px clamp(36px, 6vw, 86px); display: flex; flex-direction: column; justify-content: space-between; overflow: hidden; color: white; background: var(--navy-deep); }
 .auth-brand-panel::before { content: ""; position: absolute; width: 520px; height: 520px; right: -310px; top: -210px; border: 1px solid rgba(255,255,255,.12); border-radius: 50%; }
-.auth-brand-panel::after { content: ""; position: absolute; width: 260px; height: 260px; left: -170px; bottom: -120px; border: 1px solid rgba(224,166,58,.32); border-radius: 50%; }
+.auth-brand-panel::after { content: ""; position: absolute; width: 260px; height: 260px; left: -170px; bottom: -120px; border: 1px solid rgba(125,132,255,.34); border-radius: 50%; }
 .auth-brand { position: relative; z-index: 1; align-self: flex-start; }
 .auth-brand .brand-mark { color: var(--navy); background: var(--gold); }
 .auth-brand strong { color: white; }

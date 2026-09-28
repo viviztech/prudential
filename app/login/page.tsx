@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -29,8 +30,8 @@ export default async function LoginPage({ searchParams }: LoginProps) {
     <main className="auth-page">
       <section className="auth-brand-panel" aria-label="Prudential ISO admin access">
         <Link className="brand auth-brand" href="/">
-          <span className="brand-mark">P</span>
-          <span><strong>Prudential</strong><small>ISO Certification</small></span>
+          <span className="relative size-12 overflow-hidden rounded-xl border border-white/20 bg-white"><img className="absolute left-1/2 top-0 h-[70px] w-[70px] max-w-none -translate-x-1/2 object-cover object-top" src="/ps-logo.jpg" alt="" /></span>
+          <span><strong>Prudential</strong><small>Assessment Services LLP</small></span>
         </Link>
         <div className="auth-brand-copy">
           <p className="eyebrow">Private administration</p>
