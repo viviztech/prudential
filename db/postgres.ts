@@ -1,4 +1,8 @@
-import postgres, { type Sql } from "postgres";
+import { createRequire } from "node:module";
+import type { Sql } from "postgres";
+
+const nodeRequire = createRequire(import.meta.url);
+const postgres = Reflect.apply(nodeRequire, undefined, ["postgres"]) as typeof import("postgres");
 
 type Row = Record<string, unknown>;
 
