@@ -1,52 +1,52 @@
 /* eslint-disable @next/next/no-img-element */
 import type { Metadata } from "next";
+import { Database, FileImage, Settings2, Upload } from "lucide-react";
+import { AdminNotice, AdminPageHeader, Field } from "@/components/admin-ui";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { NativeSelect } from "@/components/ui/native-select";
+import { Textarea } from "@/components/ui/textarea";
 import report from "../../../data/legacy-import-report.json";
 import { getCertificateSettings, getLegacyImportStats } from "../../../db/runtime";
 
 export const metadata: Metadata = { title: "Certificate settings" };
-
 type SettingsProps = { searchParams?: Promise<{ saved?: string; uploaded?: string; imported?: string; error?: string }> };
 
 export default async function SettingsPage({ searchParams }: SettingsProps) {
-  const [params, settings, importStats] = await Promise.all([
-    searchParams ?? Promise.resolve({}),
-    getCertificateSettings(),
-    getLegacyImportStats(),
-  ]);
+  const [params, settings, importStats] = await Promise.all([searchParams ?? Promise.resolve({}), getCertificateSettings(), getLegacyImportStats()]);
+  return <>
+    <AdminPageHeader eyebrow="Configuration" title="Certificate settings" description="Control the wording, artwork and historical data used by certificate operations." />
+    {params.saved ? <AdminNotice>Certificate wording saved.</AdminNotice> : null}
+    {params.uploaded ? <AdminNotice>Certificate artwork uploaded.</AdminNotice> : null}
+    {params.imported ? <AdminNotice>Historical records imported successfully.</AdminNotice> : null}
+    {params.error ? <AdminNotice tone="error">The requested update could not be completed.</AdminNotice> : null}
 
-  return (
-    <>
-      <header className="admin-top"><div><p className="admin-kicker">Configuration</p><h1>Certificate settings</h1><p>Control the wording and branding used on every new certificate.</p></div></header>
-      {params.saved ? <p className="success settings-message">Certificate wording saved.</p> : null}
-      {params.uploaded ? <p className="success settings-message">Certificate artwork uploaded.</p> : null}
-      {params.imported ? <p className="success settings-message">Historical records imported successfully.</p> : null}
-      {params.error ? <p className="error-banner settings-message">The requested update could not be completed.</p> : null}
+    <div className="mt-7 grid gap-6 xl:grid-cols-[1.15fr_.85fr]">
+      <Card className="rounded-2xl border-[#d8e3e1] shadow-none"><CardHeader><div><CardTitle>Certificate wording</CardTitle><CardDescription>Default organization, certification and signatory text.</CardDescription></div><Settings2 className="size-6 text-[#0f887b]" /></CardHeader><CardContent><form action="/api/admin/settings" method="post" className="grid gap-5">
+        <Field label="Brand name"><Input name="brandName" defaultValue={settings.brand_name} required /></Field>
+        <Field label="Office address"><Textarea name="officeAddress" defaultValue={settings.office_address} placeholder="Enter the address to print on the certificate" /></Field>
+        <Field label="Certificate heading"><Input name="registrationHeading" defaultValue={settings.registration_heading} required /></Field>
+        <Field label="Opening wording"><Textarea name="introWording" defaultValue={settings.intro_wording} required /></Field>
+        <Field label="Conformity wording"><Textarea name="conformityWording" defaultValue={settings.conformity_wording} required /></Field>
+        <Field label="Footer wording"><Textarea name="footerWording" defaultValue={settings.footer_wording} required /></Field>
+        <div className="grid gap-5 sm:grid-cols-2"><Field label="Signatory name"><Input name="signatoryName" defaultValue={settings.signatory_name ?? ""} /></Field><Field label="Signatory title"><Input name="signatoryTitle" defaultValue={settings.signatory_title} required /></Field></div>
+        <Button className="w-fit" type="submit">Save certificate wording</Button>
+      </form></CardContent></Card>
 
-      <div className="settings-grid">
-        <section className="panel settings-panel"><h2>Certificate wording</h2><form action="/api/admin/settings" method="post" className="settings-form">
-          <label className="field"><span>Brand name</span><input name="brandName" defaultValue={settings.brand_name} required /></label>
-          <label className="field"><span>Office address</span><textarea name="officeAddress" defaultValue={settings.office_address} placeholder="Enter the address to print on the certificate" /></label>
-          <label className="field"><span>Certificate heading</span><input name="registrationHeading" defaultValue={settings.registration_heading} required /></label>
-          <label className="field"><span>Opening wording</span><textarea name="introWording" defaultValue={settings.intro_wording} required /></label>
-          <label className="field"><span>Conformity wording</span><textarea name="conformityWording" defaultValue={settings.conformity_wording} required /></label>
-          <label className="field"><span>Footer wording</span><textarea name="footerWording" defaultValue={settings.footer_wording} required /></label>
-          <div className="field-grid"><label className="field"><span>Signatory name</span><input name="signatoryName" defaultValue={settings.signatory_name ?? ""} /></label><label className="field"><span>Signatory title</span><input name="signatoryTitle" defaultValue={settings.signatory_title} required /></label></div>
-          <button className="button primary" type="submit">Save certificate wording</button>
-        </form></section>
+      <div className="grid content-start gap-6">
+        <Card className="rounded-2xl border-[#d8e3e1] shadow-none"><CardHeader><div><CardTitle>Logo and signature</CardTitle><CardDescription>PNG, JPG or WebP up to 2 MB. Transparent PNG files work best for print.</CardDescription></div><FileImage className="size-6 text-[#0f887b]" /></CardHeader><CardContent>
+          <div className="grid gap-4 sm:grid-cols-2">{[["Logo", settings.logo_key, "/api/certificate-assets/logo", "Current certificate logo"], ["Signature", settings.signature_key, "/api/certificate-assets/signature", "Current certificate signature"]].map(([label, key, src, alt]) => <div className="rounded-xl border border-[#dfe7e6] bg-[#f8faf9] p-4" key={label}><span className="text-[10px] font-bold uppercase tracking-wide text-[#7a8c92]">{label}</span><div className="mt-3 grid h-28 place-items-center overflow-hidden rounded-lg bg-white">{key ? <img className="max-h-24 max-w-full object-contain" src={src} alt={alt} /> : <span className="text-xs text-[#8a9ba1]">{label === "Logo" ? "Current P mark" : "Not uploaded"}</span>}</div></div>)}</div>
+          <form action="/api/admin/settings/assets" method="post" encType="multipart/form-data" className="mt-5 grid gap-4"><Field label="Asset type"><NativeSelect name="kind"><option value="logo">Logo</option><option value="signature">Signature</option></NativeSelect></Field><Field label="Image file"><Input type="file" name="asset" accept="image/png,image/jpeg,image/webp" required /></Field><Button variant="outline" type="submit"><Upload />Upload artwork</Button></form>
+        </CardContent></Card>
 
-        <div className="settings-side">
-          <section className="panel settings-panel"><h2>Logo and signature</h2><p>Upload PNG, JPG, or WebP files up to 2 MB. Transparent PNG files work best for printing.</p>
-            <div className="asset-preview-grid"><div><span>Logo</span>{settings.logo_key ? <img src="/api/certificate-assets/logo" alt="Current certificate logo" /> : <div className="asset-placeholder">Current P mark</div>}</div><div><span>Signature</span>{settings.signature_key ? <img src="/api/certificate-assets/signature" alt="Current certificate signature" /> : <div className="asset-placeholder">Not uploaded</div>}</div></div>
-            <form action="/api/admin/settings/assets" method="post" encType="multipart/form-data" className="asset-form"><label className="field"><span>Asset type</span><select name="kind"><option value="logo">Logo</option><option value="signature">Signature</option></select></label><label className="field"><span>Image file</span><input type="file" name="asset" accept="image/png,image/jpeg,image/webp" required /></label><button className="button secondary" type="submit">Upload artwork</button></form>
-          </section>
-
-          <section className="panel settings-panel"><div className="panel-head"><h2>Historical workbook</h2><span className="pill">{report.records} rows ready</span></div><p>The source workbook remains unchanged. Duplicate and missing certificate numbers are held for review.</p>
-            <div className="import-stats"><p><span>Ready records</span><strong>{report.records}</strong></p><p><span>Companies</span><strong>{report.unique_companies}</strong></p><p><span>Public numbers</span><strong>{report.public_certificate_numbers}</strong></p><p><span>Needs review</span><strong>{report.records_with_duplicate_numbers + report.records_missing_certificate_number}</strong></p></div>
-            <p className="import-current">Currently imported: <strong>{importStats.records}</strong> records across <strong>{importStats.companies}</strong> companies; <strong>{importStats.review}</strong> require number review.</p>
-            <form action="/api/admin/import-legacy" method="post" encType="multipart/form-data" className="asset-form"><label className="field"><span>Prepared import file</span><input type="file" name="legacyFile" accept="application/json,.json" required /></label><button className="button primary" type="submit">Import historical records</button></form>
-          </section>
-        </div>
+        <Card className="rounded-2xl border-[#d8e3e1] shadow-none"><CardHeader><div><CardTitle>Historical workbook</CardTitle><CardDescription>Import prepared legacy certificate records for lookup and review.</CardDescription></div><Badge variant="pending">{report.records} rows ready</Badge></CardHeader><CardContent>
+          <div className="grid grid-cols-2 gap-3">{[["Ready records", report.records], ["Companies", report.unique_companies], ["Public numbers", report.public_certificate_numbers], ["Needs review", report.records_with_duplicate_numbers + report.records_missing_certificate_number]].map(([label, value]) => <div className="rounded-xl bg-[#f3f7f6] p-4" key={label}><span className="text-[10px] font-bold uppercase tracking-wide text-[#7a8c92]">{label}</span><strong className="mt-2 block font-serif text-2xl font-medium text-[#0d2a3d]">{value}</strong></div>)}</div>
+          <p className="mt-5 rounded-xl border border-[#dfe7e6] p-4 text-xs leading-6 text-[#647983]">Currently imported: <strong>{importStats.records}</strong> records across <strong>{importStats.companies}</strong> companies; <strong>{importStats.review}</strong> require number review.</p>
+          <form action="/api/admin/import-legacy" method="post" encType="multipart/form-data" className="mt-5 grid gap-4"><Field label="Prepared import file"><Input type="file" name="legacyFile" accept="application/json,.json" required /></Field><Button type="submit"><Database />Import historical records</Button></form>
+        </CardContent></Card>
       </div>
-    </>
-  );
+    </div>
+  </>;
 }
