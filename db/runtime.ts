@@ -192,36 +192,42 @@ export type LegacyRecord = {
   expiry_date: string | null;
 };
 
-export async function ensureDatabase() {
-  try {
-    await database.batch(schemaStatements.map((sql) => database.prepare(sql)));
-    await database.batch(
-      CERTIFICATION_CATALOG.map(({ name, code, prefix }) =>
-        database.prepare(
-          `INSERT INTO certifications (name, code, certificate_prefix, active)
-           VALUES (?, ?, ?, 1)
-           ON CONFLICT(code) DO UPDATE SET
-             name = excluded.name,
-             certificate_prefix = excluded.certificate_prefix,
-             active = 1`,
-        ).bind(name, code, prefix),
-      ),
-    );
-    await database.prepare(`UPDATE certifications SET active = 0 WHERE code = 'OTHER'`).run();
-    await database.prepare(
-      `INSERT OR IGNORE INTO certificate_settings
-        (id, brand_name, office_address, registration_heading, intro_wording,
-         conformity_wording, footer_wording, signatory_name, signatory_title, updated_at)
-       VALUES (1, 'Prudential ISO', '1&1A, UR Nagar Extn, Anna Nagar W Ext St, Chennai, Tamil Nadu 600101', 'Certificate of Registration',
-         'This is to certify that the management system of',
-         'has been assessed and found to conform to the requirements of',
-         'This certificate remains the property of Prudential ISO and is subject to the certification terms and conditions.',
-         NULL, 'Authorized Signatory', ?)`,
-    ).bind(new Date().toISOString()).run();
-  } catch (error) {
+let databaseReady: Promise<void> | undefined;
+
+export function ensureDatabase() {
+  databaseReady ??= initializeDatabase().catch((error) => {
+    databaseReady = undefined;
     console.error("[database] Failed to initialize PostgreSQL schema.", error);
     throw error;
-  }
+  });
+  return databaseReady;
+}
+
+async function initializeDatabase() {
+  await database.batch(schemaStatements.map((sql) => database.prepare(sql)));
+  await database.batch(
+    CERTIFICATION_CATALOG.map(({ name, code, prefix }) =>
+      database.prepare(
+        `INSERT INTO certifications (name, code, certificate_prefix, active)
+         VALUES (?, ?, ?, 1)
+         ON CONFLICT(code) DO UPDATE SET
+           name = excluded.name,
+           certificate_prefix = excluded.certificate_prefix,
+           active = 1`,
+      ).bind(name, code, prefix),
+    ),
+  );
+  await database.prepare(`UPDATE certifications SET active = 0 WHERE code = 'OTHER'`).run();
+  await database.prepare(
+    `INSERT OR IGNORE INTO certificate_settings
+      (id, brand_name, office_address, registration_heading, intro_wording,
+       conformity_wording, footer_wording, signatory_name, signatory_title, updated_at)
+     VALUES (1, 'Prudential ISO', '1&1A, UR Nagar Extn, Anna Nagar W Ext St, Chennai, Tamil Nadu 600101', 'Certificate of Registration',
+       'This is to certify that the management system of',
+       'has been assessed and found to conform to the requirements of',
+       'This certificate remains the property of Prudential ISO and is subject to the certification terms and conditions.',
+       NULL, 'Authorized Signatory', ?)`,
+  ).bind(new Date().toISOString()).run();
 }
 
 export async function createEnquiry(input: Omit<EnquiryRecord, "id" | "status" | "created_at">) {
