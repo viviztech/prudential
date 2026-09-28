@@ -246,6 +246,20 @@ export async function getEnquiry(id: string) {
     .bind(id).first<EnquiryRecord>();
 }
 
+export async function updateEnquiry(id: string, input: Omit<EnquiryRecord, "id" | "status" | "created_at">) {
+  await ensureDatabase();
+  const result = await env.DB.prepare(
+    `UPDATE enquiries SET
+      company_name = ?, address = ?, scope = ?, contact_person = ?,
+      mobile = ?, email = ?, certification = ?, notes = ?
+     WHERE id = ?`,
+  ).bind(
+    input.company_name, input.address, input.scope, input.contact_person,
+    input.mobile, input.email, input.certification, input.notes, id,
+  ).run();
+  if (!result.meta.changes) throw new Error("Enquiry not found.");
+}
+
 export async function listCertifications() {
   await ensureDatabase();
   const result = await env.DB.prepare(
