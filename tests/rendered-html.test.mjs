@@ -28,10 +28,25 @@ test("renders the Prudential ISO marketing site", async () => {
   assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
 
   const html = await response.text();
-  assert.match(html, /<title>Prudential ISO \| Certification made clear<\/title>/i);
-  assert.match(html, /Every certificate should withstand scrutiny/i);
-  assert.match(html, /ISO 17024:2017/);
-  assert.match(html, /SA 8000/);
+  assert.match(html, /<title>Certification Standards Explained \| Prudential ISO<\/title>/i);
+  assert.match(html, /Choose the certification your business can use/i);
+  assert.match(html, /ISO\/IEC 27001:2022/);
+  assert.match(html, /Browse all certification and compliance guides/i);
+});
+
+test("renders the certification directory and detailed standard guides", async () => {
+  const [directoryResponse, guideResponse] = await Promise.all([
+    render("/certifications"),
+    render("/certifications/iso-9001-quality-management"),
+  ]);
+  assert.equal(directoryResponse.status, 200);
+  assert.equal(guideResponse.status, 200);
+  const [directoryHtml, guideHtml] = await Promise.all([directoryResponse.text(), guideResponse.text()]);
+  assert.match(directoryHtml, /Find the standard that fits the work/i);
+  assert.match(directoryHtml, /Migration guidance—not a current certification/i);
+  assert.match(guideHtml, /ISO 9001 Quality Management System Certification/i);
+  assert.match(guideHtml, /application\/ld\+json/i);
+  assert.match(guideHtml, /Before requesting assessment/i);
 });
 
 test("renders branded login and password recovery screens", async () => {

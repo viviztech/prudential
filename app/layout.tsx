@@ -3,7 +3,7 @@ import { headers } from "next/headers";
 import "./globals.css";
 
 const siteDescription =
-  "A controlled ISO certification workflow for enquiries, certificate issuance, and public verification.";
+  "Compare certification standards, understand their business benefits, prepare for assessment, and verify certificates issued by Prudential ISO.";
 
 function requestOrigin(hostHeader: string | null, protocolHeader: string | null) {
   const host = hostHeader?.split(",", 1)[0]?.trim();
@@ -33,14 +33,14 @@ export async function generateMetadata(): Promise<Metadata> {
     shortcut: "/favicon.svg",
   },
     openGraph: {
-      title: "Every certificate should withstand scrutiny.",
+      title: "Certification standards explained | Prudential ISO",
       description: siteDescription,
       type: "website",
       images: socialImage ? [{ url: socialImage, width: 1730, height: 909, alt: "Prudential ISO certificate dossier" }] : undefined,
     },
     twitter: {
       card: "summary_large_image",
-      title: "Every certificate should withstand scrutiny.",
+      title: "Certification standards explained | Prudential ISO",
       description: siteDescription,
       images: socialImage ? [socialImage] : undefined,
     },

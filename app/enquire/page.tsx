@@ -6,16 +6,20 @@ import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
 import { SiteFooter, SiteHeader } from "@/components/site-chrome";
-import { CERTIFICATION_NAMES } from "../../lib/certifications";
+import { CERTIFICATION_CATALOG, CERTIFICATION_NAMES } from "../../lib/certifications";
 
 export const metadata: Metadata = { title: "Start an enquiry" };
 
-type EnquireProps = { searchParams?: Promise<{ submitted?: string }> };
+type EnquireProps = { searchParams?: Promise<{ submitted?: string; certification?: string }> };
 
 const fieldLabel = "mb-2 block text-xs font-bold text-[#0d2a3d]";
 
 export default async function EnquirePage({ searchParams }: EnquireProps) {
   const params = searchParams ? await searchParams : {};
+  const requestedCertification = params.certification?.toUpperCase() ?? "";
+  const certificationAliases: Record<string, string> = { "ISO/IEC 20000-1:2018": "20001", "ISO/IEC 17024:2026": "17024", "SA 8000": "SA8000" };
+  const requestedCode = certificationAliases[requestedCertification] ?? requestedCertification.replaceAll(/[^A-Z0-9]/g, "");
+  const selectedCertification = CERTIFICATION_CATALOG.find((item) => requestedCode.includes(item.code))?.name ?? "";
   return (
     <main className="min-h-screen bg-[#f4f7f6]">
       <SiteHeader />
@@ -34,7 +38,7 @@ export default async function EnquirePage({ searchParams }: EnquireProps) {
               <label htmlFor="contactPerson"><span className={fieldLabel}>Contact person</span><Input id="contactPerson" name="contactPerson" required /></label>
               <label htmlFor="mobile"><span className={fieldLabel}>Mobile number</span><Input id="mobile" name="mobile" inputMode="tel" required /></label>
               <label htmlFor="email"><span className={fieldLabel}>Email address</span><Input id="email" name="email" type="email" required /></label>
-              <label htmlFor="certification"><span className={fieldLabel}>Certification</span><NativeSelect id="certification" name="certification" required defaultValue=""><option value="" disabled>Select certification</option>{CERTIFICATION_NAMES.map((name) => <option key={name}>{name}</option>)}</NativeSelect></label>
+              <label htmlFor="certification"><span className={fieldLabel}>Certification</span><NativeSelect id="certification" name="certification" required defaultValue={selectedCertification}><option value="" disabled>Select certification</option>{CERTIFICATION_NAMES.map((name) => <option key={name}>{name}</option>)}</NativeSelect></label>
               <label className="sm:col-span-2" htmlFor="notes"><span className={fieldLabel}>Additional notes <em className="font-normal not-italic text-[#819198]">(optional)</em></span><Textarea id="notes" name="notes" /></label>
             </div>
             <Button className="mt-7" size="lg" type="submit">Send enquiry<ArrowRight /></Button>
