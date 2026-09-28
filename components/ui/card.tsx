@@ -17,8 +17,16 @@ function CardDescription({ className, ...props }: React.ComponentProps<"p">) {
   return <p className={cn("mt-1 text-sm leading-6 text-[#647983]", className)} {...props} />;
 }
 
+function CardAction({ className, ...props }: React.ComponentProps<"div">) {
+  return <div className={cn("ml-auto shrink-0", className)} {...props} />;
+}
+
 function CardContent({ className, ...props }: React.ComponentProps<"div">) {
   return <div className={cn("p-6", className)} {...props} />;
 }
 
-export { Card, CardHeader, CardTitle, CardDescription, CardContent };
+function CardFooter({ className, ...props }: React.ComponentProps<"div">) {
+  return <div className={cn("flex items-center border-t border-[#e0e8e8] px-6 py-4", className)} {...props} />;
+}
+
+export { Card, CardHeader, CardTitle, CardDescription, CardAction, CardContent, CardFooter };

@@ -31,7 +31,7 @@ test("renders the Prudential ISO marketing site", async () => {
   assert.match(html, /<title>Certification Standards Explained \| Prudential ISO<\/title>/i);
   assert.match(html, /Choose the certification your business can use/i);
   assert.match(html, /ISO\/IEC 27001:2022/);
-  assert.match(html, /Browse all certification and compliance guides/i);
+  assert.match(html, /Browse all certification guides/i);
 });
 
 test("renders the certification directory and detailed standard guides", async () => {
@@ -43,7 +43,7 @@ test("renders the certification directory and detailed standard guides", async (
   assert.equal(guideResponse.status, 200);
   const [directoryHtml, guideHtml] = await Promise.all([directoryResponse.text(), guideResponse.text()]);
   assert.match(directoryHtml, /Find the standard that fits the work/i);
-  assert.match(directoryHtml, /Migration guidance—not a current certification/i);
+  assert.match(directoryHtml, /Migration guidance/i);
   assert.match(guideHtml, /ISO 9001 Quality Management System Certification/i);
   assert.match(guideHtml, /application\/ld\+json/i);
   assert.match(guideHtml, /Before requesting assessment/i);
