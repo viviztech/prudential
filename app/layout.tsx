@@ -10,7 +10,7 @@ function requestOrigin(hostHeader: string | null, protocolHeader: string | null)
   if (!host || !/^(?:localhost|[a-z0-9.-]+)(?::\d{1,5})?$/i.test(host)) return null;
 
   const requestedProtocol = protocolHeader?.split(",", 1)[0]?.trim();
-  const protocol = requestedProtocol === "http" && import.meta.env.DEV ? "http" : "https";
+  const protocol = requestedProtocol === "http" && process.env.NODE_ENV === "development" ? "http" : "https";
   return `${protocol}://${host}`;
 }
 

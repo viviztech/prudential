@@ -2,7 +2,8 @@
 
 A certification marketing site and one-admin certificate workflow built with
 React 19, Vinext, Tailwind CSS 4, and a shadcn/ui-style component system. The
-application uses Cloudflare D1 for records and R2 for certificate artwork.
+production deployment uses PostgreSQL for records and persistent filesystem
+storage for certificate artwork.
 
 ## Interface stack
 
@@ -14,6 +15,8 @@ application uses Cloudflare D1 for records and R2 for certificate artwork.
 ## Prerequisites
 
 - Node.js `>=22.13.0`
+- PostgreSQL 16 or newer
+- `DATABASE_URL`, `ADMIN_PASSWORD`, and `AUTH_SECRET` environment variables
 
 ## Quick Start
 
@@ -28,9 +31,9 @@ This starter does not use `wrangler.jsonc`.
 ## Included Shape
 
 - edit site code under `app/`
-- `.openai/hosting.json` declares optional Sites D1 and R2 bindings
-- `vite.config.ts` simulates declared bindings for local development
-- `db/schema.ts` starts intentionally empty
+- `.openai/hosting.json` remains available for the original Sites build tooling
+- `db/schema.ts` defines the PostgreSQL application schema
+- `/data/assets` stores uploaded certificate artwork in the Coolify deployment
 - `examples/d1/` contains an optional D1 example surface
 - `drizzle.config.ts` supports local migration generation when needed
 

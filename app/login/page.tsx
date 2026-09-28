@@ -22,8 +22,8 @@ export default async function LoginPage({ searchParams }: LoginProps) {
     : "/admin";
   const user = await getChatGPTUser();
   const selfHosted = Boolean(process.env.ADMIN_PASSWORD && process.env.AUTH_SECRET);
-  const signInHref = import.meta.env.DEV ? "/admin" : chatGPTSignInPath(returnTo);
-  const switchAccountHref = import.meta.env.DEV
+  const signInHref = process.env.NODE_ENV === "development" ? "/admin" : chatGPTSignInPath(returnTo);
+  const switchAccountHref = process.env.NODE_ENV === "development"
     ? "/admin"
     : chatGPTSignOutPath(`/login?return_to=${encodeURIComponent(returnTo)}`);
 

@@ -15,7 +15,12 @@ export const metadata: Metadata = { title: "Certificate settings" };
 type SettingsProps = { searchParams?: Promise<{ saved?: string; uploaded?: string; imported?: string; error?: string }> };
 
 export default async function SettingsPage({ searchParams }: SettingsProps) {
-  const [params, settings, importStats] = await Promise.all([searchParams ?? Promise.resolve({}), getCertificateSettings(), getLegacyImportStats()]);
+  const [settings, importStats] = await Promise.all([getCertificateSettings(), getLegacyImportStats()]);
+  const params: { saved?: string; uploaded?: string; imported?: string; error?: string } = searchParams ? await searchParams : {};
+  const artwork: Array<[string, string | null, string, string]> = [
+    ["Logo", settings.logo_key, "/api/certificate-assets/logo", "Current certificate logo"],
+    ["Signature", settings.signature_key, "/api/certificate-assets/signature", "Current certificate signature"],
+  ];
   return <>
     <AdminPageHeader eyebrow="Configuration" title="Certificate settings" description="Control the wording, artwork and historical data used by certificate operations." />
     {params.saved ? <AdminNotice>Certificate wording saved.</AdminNotice> : null}
@@ -37,7 +42,7 @@ export default async function SettingsPage({ searchParams }: SettingsProps) {
 
       <div className="grid content-start gap-6">
         <Card className="rounded-2xl border-[#dfe1f0] shadow-none"><CardHeader><div><CardTitle>Logo and signature</CardTitle><CardDescription>PNG, JPG or WebP up to 2 MB. Transparent PNG files work best for print.</CardDescription></div><FileImage className="size-6 text-[#202eff]" /></CardHeader><CardContent>
-          <div className="grid gap-4 sm:grid-cols-2">{[["Logo", settings.logo_key, "/api/certificate-assets/logo", "Current certificate logo"], ["Signature", settings.signature_key, "/api/certificate-assets/signature", "Current certificate signature"]].map(([label, key, src, alt]) => <div className="rounded-xl border border-[#e2e4f2] bg-[#f8faf9] p-4" key={label}><span className="text-[10px] font-bold uppercase tracking-wide text-[#7c82a8]">{label}</span><div className="mt-3 grid h-28 place-items-center overflow-hidden rounded-lg bg-white">{key ? <img className="max-h-24 max-w-full object-contain" src={src} alt={alt} /> : <span className="text-xs text-[#9297b5]">{label === "Logo" ? "Current P mark" : "Not uploaded"}</span>}</div></div>)}</div>
+          <div className="grid gap-4 sm:grid-cols-2">{artwork.map(([label, key, src, alt]) => <div className="rounded-xl border border-[#e2e4f2] bg-[#f8faf9] p-4" key={label}><span className="text-[10px] font-bold uppercase tracking-wide text-[#7c82a8]">{label}</span><div className="mt-3 grid h-28 place-items-center overflow-hidden rounded-lg bg-white">{key ? <img className="max-h-24 max-w-full object-contain" src={src} alt={alt} /> : <span className="text-xs text-[#9297b5]">{label === "Logo" ? "Current P mark" : "Not uploaded"}</span>}</div></div>)}</div>
           <form action="/api/admin/settings/assets" method="post" encType="multipart/form-data" className="mt-5 grid gap-4"><Field label="Asset type"><NativeSelect name="kind"><option value="logo">Logo</option><option value="signature">Signature</option></NativeSelect></Field><Field label="Image file"><Input type="file" name="asset" accept="image/png,image/jpeg,image/webp" required /></Field><Button variant="outline" type="submit"><Upload />Upload artwork</Button></form>
         </CardContent></Card>
 

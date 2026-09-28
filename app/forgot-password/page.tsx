@@ -13,7 +13,7 @@ export default async function ForgotPasswordPage({ searchParams }: ForgotPasswor
   const returnTo = params.return_to?.startsWith("/") && !params.return_to.startsWith("//")
     ? params.return_to
     : "/admin";
-  const recoveryHref = import.meta.env.DEV ? "/login" : chatGPTSignInPath(returnTo);
+  const recoveryHref = process.env.NODE_ENV === "development" ? "/login" : chatGPTSignInPath(returnTo);
 
   return (
     <main className="auth-page">

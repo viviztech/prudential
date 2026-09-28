@@ -19,7 +19,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   ] as const;
   const logoutHref = isSelfHostedAuthEnabled()
     ? "/api/auth/logout"
-    : import.meta.env.DEV ? "/login?signed_out=1" : chatGPTSignOutPath("/login?signed_out=1");
+    : process.env.NODE_ENV === "development" ? "/login?signed_out=1" : chatGPTSignOutPath("/login?signed_out=1");
 
   return (
     <main className="admin-shell min-h-screen bg-[#f4f5fb] lg:grid lg:grid-cols-[280px_1fr]">

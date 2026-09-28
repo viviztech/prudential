@@ -1,6 +1,6 @@
-import { index, integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
+import { index, integer, pgTable, serial, text, uniqueIndex } from "drizzle-orm/pg-core";
 
-export const enquiries = sqliteTable("enquiries", {
+export const enquiries = pgTable("enquiries", {
   id: text("id").primaryKey(),
   companyName: text("company_name").notNull(),
   address: text("address").notNull(),
@@ -14,15 +14,15 @@ export const enquiries = sqliteTable("enquiries", {
   createdAt: text("created_at").notNull(),
 }, (table) => [index("idx_enquiries_status_created").on(table.status, table.createdAt)]);
 
-export const certifications = sqliteTable("certifications", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const certifications = pgTable("certifications", {
+  id: serial("id").primaryKey(),
   name: text("name").notNull(),
   code: text("code").notNull(),
   certificatePrefix: text("certificate_prefix").notNull(),
-  active: integer("active", { mode: "boolean" }).notNull().default(true),
+  active: integer("active").notNull().default(1),
 }, (table) => [uniqueIndex("idx_certifications_code").on(table.code)]);
 
-export const companies = sqliteTable("companies", {
+export const companies = pgTable("companies", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
   address: text("address").notNull(),
@@ -32,7 +32,7 @@ export const companies = sqliteTable("companies", {
   createdAt: text("created_at").notNull(),
 });
 
-export const certificates = sqliteTable("certificates", {
+export const certificates = pgTable("certificates", {
   id: text("id").primaryKey(),
   companyId: text("company_id").notNull().references(() => companies.id),
   certificationId: integer("certification_id").notNull().references(() => certifications.id),
@@ -54,25 +54,25 @@ export const certificates = sqliteTable("certificates", {
   index("idx_certificates_expiry").on(table.expiryDate),
 ]);
 
-export const certificateCounters = sqliteTable("certificate_counters", {
+export const certificateCounters = pgTable("certificate_counters", {
   counterKey: text("counter_key").primaryKey(),
   lastValue: integer("last_value").notNull().default(0),
 });
 
-export const certificateLegacy = sqliteTable("certificate_legacy", {
+export const certificateLegacy = pgTable("certificate_legacy", {
   certificateId: text("certificate_id").primaryKey().references(() => certificates.id),
   sourceSheet: text("source_sheet").notNull(),
   sourceRow: integer("source_row").notNull(),
   associateName: text("associate_name"),
   originalStandard: text("original_standard"),
   legacyCertificateNumber: text("legacy_certificate_number"),
-  printed: integer("printed", { mode: "boolean" }).notNull().default(false),
-  delivered: integer("delivered", { mode: "boolean" }).notNull().default(false),
-  activated: integer("activated", { mode: "boolean" }).notNull().default(false),
+  printed: integer("printed").notNull().default(0),
+  delivered: integer("delivered").notNull().default(0),
+  activated: integer("activated").notNull().default(0),
   applicationDate: text("application_date"),
 }, (table) => [uniqueIndex("idx_certificate_legacy_source").on(table.sourceSheet, table.sourceRow)]);
 
-export const certificateSettings = sqliteTable("certificate_settings", {
+export const certificateSettings = pgTable("certificate_settings", {
   id: integer("id").primaryKey(),
   brandName: text("brand_name").notNull(),
   officeAddress: text("office_address").notNull(),

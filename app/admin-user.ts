@@ -1,4 +1,3 @@
-import { env } from "cloudflare:workers";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { getChatGPTUser, type ChatGPTUser } from "./chatgpt-auth";
@@ -14,7 +13,7 @@ const LOCAL_ADMIN: ChatGPTUser = {
 };
 
 export async function getAdminUser(returnTo: string): Promise<ChatGPTUser> {
-  if (import.meta.env.DEV) {
+  if (process.env.NODE_ENV === "development") {
     return (await getChatGPTUser()) ?? LOCAL_ADMIN;
   }
 
@@ -36,7 +35,7 @@ export async function getAdminUser(returnTo: string): Promise<ChatGPTUser> {
 }
 
 export async function getAdminApiUser(): Promise<ChatGPTUser | null> {
-  if (import.meta.env.DEV) {
+  if (process.env.NODE_ENV === "development") {
     return (await getChatGPTUser()) ?? LOCAL_ADMIN;
   }
 
@@ -50,16 +49,14 @@ export async function getAdminApiUser(): Promise<ChatGPTUser | null> {
 }
 
 export function isSelfHostedAuthEnabled(): boolean {
-  const runtimeEnv = env as typeof env & { ADMIN_PASSWORD?: string; AUTH_SECRET?: string };
-  return Boolean(runtimeEnv.ADMIN_PASSWORD && runtimeEnv.AUTH_SECRET);
+  return Boolean(process.env.ADMIN_PASSWORD && process.env.AUTH_SECRET);
 }
 
 export async function createAdminSessionToken(): Promise<string> {
-  const runtimeEnv = env as typeof env & { AUTH_SECRET?: string };
-  if (!runtimeEnv.AUTH_SECRET) throw new Error("AUTH_SECRET is not configured");
+  if (!process.env.AUTH_SECRET) throw new Error("AUTH_SECRET is not configured");
   const key = await crypto.subtle.importKey(
     "raw",
-    new TextEncoder().encode(runtimeEnv.AUTH_SECRET),
+    new TextEncoder().encode(process.env.AUTH_SECRET),
     { name: "HMAC", hash: "SHA-256" },
     false,
     ["sign"],
@@ -73,8 +70,7 @@ export function adminSessionCookieName(): string {
 }
 
 export function configuredAdminPassword(): string | undefined {
-  const runtimeEnv = env as typeof env & { ADMIN_PASSWORD?: string };
-  return runtimeEnv.ADMIN_PASSWORD;
+  return process.env.ADMIN_PASSWORD;
 }
 
 async function getSelfHostedAdmin(): Promise<ChatGPTUser | null> {
@@ -108,6 +104,5 @@ function bytesToBase64Url(bytes: Uint8Array): string {
 }
 
 function adminEmail(): string | undefined {
-  const runtimeEnv = env as typeof env & { ADMIN_EMAIL?: string };
-  return runtimeEnv.ADMIN_EMAIL?.trim().toLowerCase();
+  return process.env.ADMIN_EMAIL?.trim().toLowerCase();
 }

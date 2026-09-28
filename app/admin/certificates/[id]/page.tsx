@@ -18,7 +18,8 @@ function dateLabel(value: string | null) {
 }
 
 export default async function CertificatePage({ params, searchParams }: CertificateProps) {
-  const [{ id }, query] = await Promise.all([params, searchParams ?? Promise.resolve({})]);
+  const { id } = await params;
+  const query: { error?: string } = searchParams ? await searchParams : {};
   const certificate = await getCertificate(id);
   if (!certificate) return <Card className="rounded-2xl"><CardContent className="p-10"><h1 className="font-serif text-4xl text-[#111a4d]">Certificate not found</h1><Button asChild className="mt-6"><Link href="/admin/certificates">Return to certificates</Link></Button></CardContent></Card>;
 
