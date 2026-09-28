@@ -15,12 +15,13 @@ export async function POST(request: Request) {
   }
 
   const token = await createAdminSessionToken();
-  const response = Response.redirect(new URL(returnTo, request.url), 303);
-  response.headers.append(
-    "Set-Cookie",
-    `${adminSessionCookieName()}=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=28800`,
-  );
-  return response;
+  return new Response(null, {
+    status: 303,
+    headers: {
+      Location: new URL(returnTo, request.url).toString(),
+      "Set-Cookie": `${adminSessionCookieName()}=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=28800`,
+    },
+  });
 }
 
 function safeReturnTo(value: string): string {
