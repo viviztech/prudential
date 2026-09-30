@@ -6,7 +6,7 @@ export type CertificateTemplate = {
 
 const CERTIFICATE_TEMPLATES: Record<string, CertificateTemplate> = {
   "9001": {
-    backgroundUrl: "/certificates/iso-9001.png",
+    backgroundUrl: "/certificates/iso-9001.jpg",
     standardLabel: "ISO 9001:2015",
     systemName: "Quality Management System",
   },
