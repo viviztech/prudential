@@ -34,6 +34,52 @@ button, input, select, textarea { font: inherit; }
 :focus-visible { outline: 3px solid #8f96ff; outline-offset: 3px; }
 .shell { width: min(1180px, calc(100% - 40px)); margin-inline: auto; }
 
+/* A certificate index that stays usable with keyboard and without client-side JS. */
+.site-navigation { isolation: isolate; }
+.site-navigation-desktop { display: none; }
+.site-navigation-mobile { display: block; }
+.site-navigation-link { min-height: 42px; display: inline-flex; align-items: center; gap: 7px; padding: 0 16px; border-radius: 7px; color: #414a78; transition: color .15s ease, background-color .15s ease; }
+.site-navigation-link:hover, .nav-disclosure[open] > .site-navigation-link { color: #111a4d; background: #eff0ff; }
+.site-navigation-cta { min-height: 42px; display: inline-flex; align-items: center; gap: 11px; margin-left: 9px; padding: 0 16px; border-radius: 7px; background: #202eff; color: white; transition: background-color .15s ease; }
+.site-navigation-cta:hover { background: #1925d8; }
+.nav-disclosure > summary { list-style: none; }
+.nav-disclosure > summary::-webkit-details-marker { display: none; }
+.site-navigation-desktop .nav-disclosure[open] > summary > svg, .mobile-certificates[open] > summary > svg { transform: rotate(180deg); }
+.certificate-mega { position: absolute; inset: 100% 0 auto; max-height: calc(100dvh - 80px); overflow-y: auto; border-top: 1px solid #e1e3f2; border-bottom: 1px solid #c9ccef; background: #fff; box-shadow: 0 22px 45px rgba(17,26,77,.13); }
+.certificate-mega-heading { display: flex; align-items: end; justify-content: space-between; gap: 24px; padding: 27px 0 20px; border-bottom: 1px solid #dfe1f0; }
+.certificate-mega-heading > div > span { color: #202eff; font-size: 10px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; }
+.certificate-mega-heading p { margin: 7px 0 0; color: #111a4d; font: 500 27px/1.1 var(--display); }
+.certificate-mega-heading > a { display: inline-flex; align-items: center; gap: 9px; color: #202eff; font-size: 13px; font-weight: 750; white-space: nowrap; }
+.certificate-mega-heading > a:hover { text-decoration: underline; text-underline-offset: 4px; }
+.certificate-mega-grid { display: grid; grid-template-columns: 1.2fr 1fr 1fr; gap: 30px; padding: 24px 0 30px; }
+.certificate-mega-group + .certificate-mega-group { border-left: 1px solid #e4e6f2; padding-left: 30px; }
+.certificate-mega-group h3, .mobile-certificate-group h3 { margin: 0 0 10px; color: #747ba0; font-size: 10px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+.certificate-mega-group ul, .mobile-certificate-group ul { margin: 0; padding: 0; list-style: none; }
+.certificate-mega-group a { display: grid; grid-template-columns: minmax(94px,.85fr) minmax(0,1fr); align-items: baseline; gap: 8px; padding: 8px 9px; border-radius: 6px; line-height: 1.35; transition: background-color .15s ease; }
+.certificate-mega-group a:hover, .certificate-mega-group a:focus-visible { background: #f0f1ff; }
+.certificate-mega-group strong { color: #111a4d; font-size: 12px; }
+.certificate-mega-group span { color: #667095; font-size: 11px; }
+.mobile-menu-toggle { min-height: 42px; display: inline-flex; align-items: center; gap: 8px; padding: 0 12px; border: 1px solid #cfd3ea; border-radius: 7px; color: #111a4d; cursor: pointer; font-size: 13px; font-weight: 750; }
+.site-navigation-mobile[open] > .mobile-menu-toggle { border-color: #202eff; background: #f0f1ff; }
+.mobile-menu-panel { position: absolute; inset: 100% 0 auto; display: block; max-height: calc(100dvh - 80px); overflow-y: auto; padding: 15px 20px 24px; border-top: 1px solid #e1e3f2; border-bottom: 1px solid #c9ccef; background: #fff; box-shadow: 0 22px 45px rgba(17,26,77,.15); }
+.mobile-menu-primary { min-height: 49px; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 5px; border-bottom: 1px solid #e6e8f3; color: #111a4d; cursor: pointer; font-size: 16px; font-weight: 700; }
+.mobile-menu-primary:hover { color: #202eff; }
+.mobile-certificate-directory { padding: 10px 0 16px; }
+.mobile-browse-all { display: flex; align-items: center; justify-content: space-between; padding: 11px 12px; border-radius: 6px; background: #eff0ff; color: #202eff; font-size: 13px; font-weight: 750; }
+.mobile-certificate-group { margin-top: 20px; }
+.mobile-certificate-group h3 { padding-left: 4px; }
+.mobile-certificate-group a { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; padding: 10px 5px; border-bottom: 1px solid #eff0f7; }
+.mobile-certificate-group a:hover { color: #202eff; }
+.mobile-certificate-group strong { color: #111a4d; font-size: 13px; }
+.mobile-certificate-group span { color: #667095; font-size: 11px; text-align: right; }
+.mobile-menu-contact { min-height: 46px; display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 18px; padding: 0 15px; border-radius: 7px; background: #202eff; color: white; font-size: 14px; font-weight: 750; }
+.mobile-menu-contact:hover { background: #1925d8; }
+
+@media (min-width: 1024px) {
+  .site-navigation-desktop { display: flex; }
+  .site-navigation-mobile { display: none; }
+}
+
 /* Public homepage — a controlled certificate dossier, not generic corporate chrome. */
 .home-page { min-height: 100vh; background: #f4f7f6; }
 .home-kicker { margin: 0 0 18px; color: #0b8c83; font-size: 11px; font-weight: 800; letter-spacing: .17em; text-transform: uppercase; }
@@ -600,7 +646,6 @@ nav a:hover { color: var(--teal); }
 .import-current { font-size: 12px; }
 
 @media (max-width: 900px) {
-  nav > a:not(.nav-cta) { display: none; }
   .hero, .process-layout, .form-layout, .admin-grid, .record-grid, .record-grid.wide, .settings-grid { grid-template-columns: 1fr; }
   .hero { gap: 45px; padding-top: 45px; }
   .certificate-scene { min-height: 460px; }
