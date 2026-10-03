@@ -1,6 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/native-link";
 import { Button } from "@/components/ui/button";
 import { chatGPTSignInPath } from "../chatgpt-auth";
 

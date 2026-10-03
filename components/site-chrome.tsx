@@ -1,5 +1,5 @@
 /* eslint-disable @next/next/no-img-element */
-import Link from "next/link";
+import Link from "@/components/native-link";
 import { ArrowRight, Mail, MapPin, Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";

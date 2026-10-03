@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/native-link";
 import { ArrowLeft, ArrowRight, CalendarDays, FileCheck2, Printer, ShieldCheck } from "lucide-react";
 import { AdminNotice, AdminPageHeader, DetailList, Field, StatusSteps } from "@/components/admin-ui";
 import { Badge } from "@/components/ui/badge";

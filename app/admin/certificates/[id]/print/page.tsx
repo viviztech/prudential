@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/native-link";
 import { getCertificate, getCertificateSettings } from "../../../../../db/runtime";
 import { getCertificateTemplate } from "../../../../../lib/certificate-templates";
 import PrintButton from "./print-button";

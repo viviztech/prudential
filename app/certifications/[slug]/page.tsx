@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/native-link";
 import { ArrowRight, Check, ClipboardCheck, SearchCheck, ShieldCheck } from "lucide-react";
 import { MarketingCta, MarketingShell, SectionHeading, StandardCard } from "@/components/marketing-blocks";
 import { SiteFooter, SiteHeader } from "@/components/site-chrome";

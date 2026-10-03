@@ -1,5 +1,5 @@
 /* eslint-disable @next/next/no-img-element */
-import Link from "next/link";
+import Link from "@/components/native-link";
 import { ExternalLink, FileCheck2, Inbox, LayoutDashboard, LogOut, Settings2, ShieldCheck } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";

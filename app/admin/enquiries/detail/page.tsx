@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/native-link";
 import { ArrowLeft, FilePlus2, Inbox, Save } from "lucide-react";
 import { AdminNotice, AdminPageHeader, Field } from "@/components/admin-ui";
 import { Badge } from "@/components/ui/badge";
