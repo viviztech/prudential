@@ -12,5 +12,5 @@ export async function GET(_request: Request, { params }: AssetRouteProps) {
   const headers = new Headers({ "content-type": object.contentType });
   headers.set("etag", object.etag);
   headers.set("cache-control", kind === "signature" ? "private, no-store" : "public, max-age=3600");
-  return new Response(object.body, { headers });
+  return new Response(new Uint8Array(object.body).buffer, { headers });
 }

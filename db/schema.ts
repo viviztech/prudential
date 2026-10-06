@@ -1,4 +1,6 @@
-import { index, integer, pgTable, serial, text, uniqueIndex } from "drizzle-orm/pg-core";
+import { customType, index, integer, pgTable, serial, text, uniqueIndex } from "drizzle-orm/pg-core";
+
+const bytea = customType<{ data: Uint8Array; driverData: Uint8Array }>({ dataType: () => "bytea" });
 
 export const adminUsers = pgTable("admin_users", {
   id: text("id").primaryKey(),
@@ -105,5 +107,28 @@ export const certificateSettings = pgTable("certificate_settings", {
   signatoryTitle: text("signatory_title").notNull(),
   logoKey: text("logo_key"),
   signatureKey: text("signature_key"),
+  updatedAt: text("updated_at").notNull(),
+});
+
+export const certificateTemplates = pgTable("certificate_templates", {
+  standardCode: text("standard_code").primaryKey(),
+  standardLabel: text("standard_label").notNull(),
+  heading: text("heading").notNull(),
+  openingText: text("opening_text").notNull(),
+  conformityText: text("conformity_text").notNull(),
+  scopeHeading: text("scope_heading").notNull(),
+  clarificationText: text("clarification_text").notNull(),
+  footerText: text("footer_text").notNull(),
+  primaryColor: text("primary_color").notNull(),
+  accentColor: text("accent_color").notNull(),
+  standardLogoKey: text("standard_logo_key"),
+  accreditationLogoKey: text("accreditation_logo_key"),
+  updatedAt: text("updated_at").notNull(),
+});
+
+export const certificateAssets = pgTable("certificate_assets", {
+  assetKey: text("asset_key").primaryKey(),
+  contentType: text("content_type").notNull(),
+  body: bytea("body").notNull(),
   updatedAt: text("updated_at").notNull(),
 });

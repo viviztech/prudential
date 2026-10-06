@@ -22,6 +22,14 @@ Existing deployments with `ADMIN_PASSWORD` and `AUTH_SECRET` automatically creat
 
 The dashboard shows workflow queues. Public verification remains at `/verify`.
 
+## Certificate design templates
+
+Admins configure each standard at `/admin/templates`. A template controls its standard name, heading, opening and conformity wording, scope label, clarification and footer, primary and accent colors, standard logo, and accreditation mark. The certificate preview uses sample company data; printed certificates use the company, scope, number, and dates from the actual record.
+
+Admins can add a new standard at `/admin/templates/new` with a unique code and certificate number prefix. The app creates its editable design template at the same time. New standards appear in certificate creation, records, printing, and verification. Changing a template's standard name also updates the certificate selection and record name.
+
+The organization logo and authorized signature are shared across standards and can be uploaded at `/admin/settings`. Artwork is stored in PostgreSQL. Printed certificates are composed from HTML and CSS without a background image. Drafts show a watermark; the signature and verification QR code appear after final copy print.
+
 ## Roles
 
 | Role | Access |

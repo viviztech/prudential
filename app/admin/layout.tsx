@@ -1,7 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 import Link from "@/components/native-link";
 import { ActiveNavLink } from "@/components/active-nav-link";
-import { ExternalLink, FileCheck2, LayoutDashboard, LogOut, Settings2, ShieldCheck, UsersRound, UserRound } from "lucide-react";
+import { ExternalLink, FileCheck2, LayoutDashboard, LogOut, Palette, Settings2, ShieldCheck, UsersRound, UserRound } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { getAdminUser } from "../admin-user";
@@ -16,6 +16,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     ["Certificates", "/admin/certificates", FileCheck2],
     ["My account", "/admin/profile", UserRound],
     ...(can(user, "users") ? [["Users", "/admin/users", UsersRound]] as const : []),
+    ...(can(user, "settings") ? [["Templates", "/admin/templates", Palette]] as const : []),
     ...(can(user, "settings") ? [["Certificate settings", "/admin/settings", Settings2]] as const : []),
   ] as const;
   const logoutHref = "/api/auth/logout";

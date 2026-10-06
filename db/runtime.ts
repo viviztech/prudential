@@ -1,8 +1,26 @@
-import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
+import { readFile, stat } from "node:fs/promises";
 import path from "node:path";
 import { CERTIFICATION_CATALOG } from "../lib/certifications";
 import { calculateCertificateDates } from "../lib/certificate-dates";
 import { database } from "./postgres";
+
+const TEMPLATE_COLORS: Record<string, [string, string]> = {
+  "9001": ["#3b54a5", "#cb131e"],
+  "14001": ["#183d35", "#286c43"],
+  "18001": ["#3c2745", "#81476f"],
+  "22000": ["#493427", "#8b582e"],
+  "27001": ["#1d3150", "#3d6092"],
+  GMP: ["#3a2d49", "#72518b"],
+  HACCP: ["#4b302d", "#994a3e"],
+  CE: ["#253b48", "#38758c"],
+  ROHS: ["#31423a", "#537647"],
+  GREEN: ["#244334", "#417c3e"],
+  "13485": ["#1d4050", "#267388"],
+  SA8000: ["#433247", "#804d75"],
+  "45001": ["#3f3424", "#906323"],
+  "20001": ["#24374c", "#426597"],
+  "17024": ["#3e2f47", "#745788"],
+};
 
 const schemaStatements = [
   `CREATE TABLE IF NOT EXISTS enquiries (
@@ -101,6 +119,27 @@ const schemaStatements = [
     signature_key TEXT,
     updated_at TEXT NOT NULL
   )`,
+  `CREATE TABLE IF NOT EXISTS certificate_templates (
+    standard_code TEXT PRIMARY KEY NOT NULL,
+    standard_label TEXT NOT NULL,
+    heading TEXT NOT NULL,
+    opening_text TEXT NOT NULL,
+    conformity_text TEXT NOT NULL,
+    scope_heading TEXT NOT NULL,
+    clarification_text TEXT NOT NULL,
+    footer_text TEXT NOT NULL,
+    primary_color TEXT NOT NULL,
+    accent_color TEXT NOT NULL,
+    standard_logo_key TEXT,
+    accreditation_logo_key TEXT,
+    updated_at TEXT NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS certificate_assets (
+    asset_key TEXT PRIMARY KEY NOT NULL,
+    content_type TEXT NOT NULL,
+    body BYTEA NOT NULL,
+    updated_at TEXT NOT NULL
+  )`,
   `CREATE TABLE IF NOT EXISTS admin_users (
     id TEXT PRIMARY KEY NOT NULL,
     name TEXT NOT NULL,
@@ -187,6 +226,22 @@ export type CertificateSettings = {
   updated_at: string;
 };
 
+export type CertificateDesignTemplate = {
+  standard_code: string;
+  standard_label: string;
+  heading: string;
+  opening_text: string;
+  conformity_text: string;
+  scope_heading: string;
+  clarification_text: string;
+  footer_text: string;
+  primary_color: string;
+  accent_color: string;
+  standard_logo_key: string | null;
+  accreditation_logo_key: string | null;
+  updated_at: string;
+};
+
 export type LegacyRecord = {
   source_sheet: string;
   source_row: number;
@@ -242,14 +297,25 @@ async function initializeDatabase() {
       database.prepare(
         `INSERT INTO certifications (name, code, certificate_prefix, active)
          VALUES (?, ?, ?, 1)
-         ON CONFLICT(code) DO UPDATE SET
-           name = excluded.name,
-           certificate_prefix = excluded.certificate_prefix,
-           active = 1`,
+         ON CONFLICT(code) DO NOTHING`,
       ).bind(name, code, prefix),
     ),
   );
   await database.prepare(`UPDATE certifications SET active = 0 WHERE code = 'OTHER'`).run();
+  await database.batch(CERTIFICATION_CATALOG.map(({ code, name }) => database.prepare(
+    `INSERT INTO certificate_templates
+      (standard_code, standard_label, heading, opening_text, conformity_text, scope_heading,
+       clarification_text, footer_text, primary_color, accent_color, updated_at)
+     VALUES (?, ?, 'Certificate of Registration', 'This is to certify that the management system of',
+       'has been assessed and found to conform to the requirements of', 'Scope of certification',
+       'Further clarification of this certificate and its scope may be obtained from the certified organization.',
+       'This certificate remains the property of Prudential ISO and is subject to certification terms and conditions.',
+       ?, ?, ?)
+     ON CONFLICT (standard_code) DO NOTHING`,
+  ).bind(code, name, ...(TEMPLATE_COLORS[code] ?? TEMPLATE_COLORS["9001"]), new Date().toISOString())));
+  await database.prepare(`UPDATE certificate_templates
+    SET primary_color = '#3b54a5', accent_color = '#cb131e'
+    WHERE standard_code = '9001' AND primary_color = '#123547' AND accent_color = '#08766f'`).run();
   await database.prepare(
     `INSERT OR IGNORE INTO certificate_settings
       (id, brand_name, office_address, registration_heading, intro_wording,
@@ -313,9 +379,43 @@ export async function listCertifications() {
      ORDER BY CASE code
        ${CERTIFICATION_CATALOG.map((item, index) => `WHEN '${item.code}' THEN ${index}`).join(" ")}
        ELSE ${CERTIFICATION_CATALOG.length}
-     END`,
+     END, name ASC`,
   ).all<CertificationRecord>();
   return result.results;
+}
+
+export async function createStandardTemplate(input: {
+  code: string; name: string; certificatePrefix: string;
+  primaryColor: string; accentColor: string;
+}) {
+  await ensureDatabase();
+  const code = input.code.trim().toUpperCase();
+  const name = input.name.trim();
+  const prefix = input.certificatePrefix.trim().toUpperCase();
+  if (!/^[A-Z0-9][A-Z0-9._-]{1,23}$/.test(code) ||
+      !name || name.length > 120 ||
+      !/^[A-Z0-9]{2,12}$/.test(prefix) ||
+      !/^#[0-9A-Fa-f]{6}$/.test(input.primaryColor) ||
+      !/^#[0-9A-Fa-f]{6}$/.test(input.accentColor)) {
+    throw new Error("Enter a valid standard name, code, certificate prefix, and colors.");
+  }
+  const existing = await database.prepare(`SELECT id FROM certifications WHERE code = ?`)
+    .bind(code).first<{ id: number }>();
+  if (existing) throw new Error("A standard with this code already exists.");
+  const now = new Date().toISOString();
+  await database.batch([
+    database.prepare(`INSERT INTO certifications (name, code, certificate_prefix, active) VALUES (?, ?, ?, 1)`)
+      .bind(name, code, prefix),
+    database.prepare(`INSERT INTO certificate_templates
+      (standard_code, standard_label, heading, opening_text, conformity_text, scope_heading,
+       clarification_text, footer_text, primary_color, accent_color, updated_at)
+     VALUES (?, ?, 'Certificate of Registration', 'This is to certify that the management system of',
+       'has been assessed and found to conform to the requirements of', 'Scope of certification',
+       'Further clarification of this certificate and its scope may be obtained from the certified organization.',
+       'This certificate remains the property of Prudential ISO and is subject to certification terms and conditions.',
+       ?, ?, ?)`).bind(code, name, input.primaryColor, input.accentColor, now),
+  ]);
+  return code;
 }
 
 export type NewCertificateInput = {
@@ -520,6 +620,61 @@ export async function getCertificateSettings() {
   return settings;
 }
 
+export async function listCertificateDesignTemplates() {
+  await ensureDatabase();
+  const rows = await database.prepare(`SELECT * FROM certificate_templates ORDER BY standard_code`).all<CertificateDesignTemplate>();
+  return rows.results;
+}
+
+export async function getCertificateDesignTemplate(code: string) {
+  await ensureDatabase();
+  return database.prepare(`SELECT * FROM certificate_templates WHERE standard_code = ? LIMIT 1`)
+    .bind(code).first<CertificateDesignTemplate>();
+}
+
+export async function updateCertificateDesignTemplate(code: string, input: Pick<CertificateDesignTemplate,
+  "standard_label" | "heading" | "opening_text" | "conformity_text" | "scope_heading" |
+  "clarification_text" | "footer_text" | "primary_color" | "accent_color">) {
+  await ensureDatabase();
+  const result = await database.batch([
+    database.prepare(`UPDATE certificate_templates SET standard_label = ?, heading = ?,
+    opening_text = ?, conformity_text = ?, scope_heading = ?, clarification_text = ?, footer_text = ?,
+    primary_color = ?, accent_color = ?, updated_at = ? WHERE standard_code = ?`)
+    .bind(input.standard_label, input.heading, input.opening_text, input.conformity_text,
+      input.scope_heading, input.clarification_text, input.footer_text, input.primary_color,
+      input.accent_color, new Date().toISOString(), code),
+    database.prepare(`UPDATE certifications SET name = ? WHERE code = ?`)
+      .bind(input.standard_label, code),
+  ]);
+  if (!result[0].count) throw new Error("Certificate template not found.");
+}
+
+export async function putTemplateAsset(code: string, kind: "standard" | "accreditation", file: File) {
+  if (!await getCertificateDesignTemplate(code)) throw new Error("Certificate template not found.");
+  const extension = file.type === "image/png" ? "png" : file.type === "image/jpeg" ? "jpg" : "webp";
+  const key = `certificate/templates/${code}/${kind}-${crypto.randomUUID()}.${extension}`;
+  await putStoredAsset(key, file);
+  const column = kind === "standard" ? "standard_logo_key" : "accreditation_logo_key";
+  await database.prepare(`UPDATE certificate_templates SET ${column} = ?, updated_at = ? WHERE standard_code = ?`)
+    .bind(key, new Date().toISOString(), code).run();
+}
+
+export async function getTemplateAsset(code: string, kind: "standard" | "accreditation") {
+  const template = await getCertificateDesignTemplate(code);
+  const key = kind === "standard" ? template?.standard_logo_key : template?.accreditation_logo_key;
+  if (!key) return null;
+  const stored = await getStoredAsset(key);
+  if (stored) return stored;
+  try {
+    const filePath = assetPath(key);
+    const [body, details] = await Promise.all([readFile(filePath), stat(filePath)]);
+    return { body, contentType: contentTypeForKey(key), etag: `"${details.size}-${Math.trunc(details.mtimeMs)}"` };
+  } catch (error) {
+    if (["ENOENT", "EPERM"].includes((error as NodeJS.ErrnoException).code ?? "")) return null;
+    throw error;
+  }
+}
+
 export async function updateCertificateSettings(input: Omit<CertificateSettings, "logo_key" | "signature_key" | "updated_at">) {
   await ensureDatabase();
   await database.prepare(
@@ -538,10 +693,8 @@ export async function updateCertificateSettings(input: Omit<CertificateSettings,
 export async function putCertificateAsset(kind: "logo" | "signature", file: File) {
   await ensureDatabase();
   const extension = file.type === "image/png" ? "png" : file.type === "image/jpeg" ? "jpg" : "webp";
-  const key = `certificate/${kind}.${extension}`;
-  const filePath = assetPath(key);
-  await mkdir(path.dirname(filePath), { recursive: true });
-  await writeFile(filePath, new Uint8Array(await file.arrayBuffer()));
+  const key = `certificate/${kind}-${crypto.randomUUID()}.${extension}`;
+  await putStoredAsset(key, file);
   const column = kind === "logo" ? "logo_key" : "signature_key";
   await database.prepare(
     `UPDATE certificate_settings SET ${column} = ?, updated_at = ? WHERE id = 1`,
@@ -552,6 +705,8 @@ export async function getCertificateAsset(kind: "logo" | "signature") {
   const settings = await getCertificateSettings();
   const key = kind === "logo" ? settings.logo_key : settings.signature_key;
   if (!key) return null;
+  const stored = await getStoredAsset(key);
+  if (stored) return stored;
   const filePath = assetPath(key);
   try {
     const [body, details] = await Promise.all([readFile(filePath), stat(filePath)]);
@@ -561,7 +716,7 @@ export async function getCertificateAsset(kind: "logo" | "signature") {
       etag: `"${details.size}-${Math.trunc(details.mtimeMs)}"`,
     };
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
+    if (["ENOENT", "EPERM"].includes((error as NodeJS.ErrnoException).code ?? "")) return null;
     throw error;
   }
 }
@@ -666,8 +821,21 @@ async function count(sql: string, parameter?: string) {
   return Number(row?.count ?? 0);
 }
 
+async function putStoredAsset(key: string, file: File) {
+  await database.prepare(`INSERT INTO certificate_assets (asset_key, content_type, body, updated_at)
+    VALUES (?, ?, ?, ?)`).bind(key, file.type, new Uint8Array(await file.arrayBuffer()), new Date().toISOString()).run();
+}
+
+async function getStoredAsset(key: string) {
+  const row = await database.prepare(`SELECT content_type, body, updated_at FROM certificate_assets WHERE asset_key = ?`)
+    .bind(key).first<{ content_type: string; body: Uint8Array; updated_at: string }>();
+  if (!row) return null;
+  return { body: row.body, contentType: row.content_type, etag: `"${row.body.length}-${row.updated_at}"` };
+}
+
 function assetPath(key: string) {
-  const root = process.env.ASSET_STORAGE_PATH || "/data/assets";
+  const root = process.env.ASSET_STORAGE_PATH ||
+    (process.env.NODE_ENV === "production" ? "/data/assets" : path.join(process.cwd(), ".local-assets"));
   return path.join(root, ...key.split("/").filter(Boolean));
 }
 
