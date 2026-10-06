@@ -11,6 +11,8 @@ A multi-user certificate workflow built with React 19, Vinext, Tailwind CSS 4, a
 
 For production first-account setup, set a strong `ADMIN_SETUP_TOKEN` in the server environment. Remove it after setup. Every account has its own password and database session. Passwords are stored as salted PBKDF2-HMAC-SHA256 hashes.
 
+Existing deployments with `ADMIN_PASSWORD` and `AUTH_SECRET` automatically create an initial administrator using the former password. If `ADMIN_EMAIL` is unset, sign in as `admin@prudentialiso.com`.
+
 ## Certificate workflow
 
 1. Record the application, legal documents, business continuity proof, and documentation checklist.

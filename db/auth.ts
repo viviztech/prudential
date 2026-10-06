@@ -90,7 +90,7 @@ export async function authenticate(email: string, password: string): Promise<Adm
 }
 
 async function bootstrapConfiguredAdmin(): Promise<void> {
-  const email = process.env.ADMIN_EMAIL?.trim().toLowerCase();
+  const email = process.env.ADMIN_EMAIL?.trim().toLowerCase() || "admin@prudentialiso.com";
   const password = process.env.ADMIN_PASSWORD;
   if (!email || !password || !process.env.AUTH_SECRET) return;
   const existing = await database.prepare("SELECT 1 AS found FROM admin_users LIMIT 1").first<{ found: number }>();
