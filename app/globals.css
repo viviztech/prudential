@@ -934,9 +934,6 @@ footer address a:hover, footer address a:focus-visible { color: var(--teal); tex
 .certificate-designed { --template-primary:#3b54a5; --template-accent:#cb131e; width:min(210mm,100%); height:297mm; min-height:297mm; container-type:inline-size; font-family:var(--body); background:#fff; color:#202638; }
 .certificate-designed::before,.certificate-designed::after { display:none; }
 .certificate-designed-art { position:absolute; z-index:0; inset:0; width:100%; height:100%; pointer-events:none; }
-.certificate-designed-corner-primary { fill:var(--template-primary); }
-.certificate-designed-corner-accent { fill:var(--template-accent); }
-.certificate-designed-dot { fill:var(--template-primary); opacity:.42; }
 .certificate-designed-header { position:relative; z-index:1; width:140mm; margin:27mm auto 0; text-align:center; }
 .certificate-designed-kicker { margin:0; color:var(--template-primary); font-size:3.5mm; font-weight:700; letter-spacing:.23em; text-transform:uppercase; }
 .certificate-designed-header h1 { margin:2mm 0 0; color:var(--template-primary); font:700 11mm/1.12 var(--display); letter-spacing:-.04em; text-transform:uppercase; }

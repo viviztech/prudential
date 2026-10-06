@@ -1,6 +1,7 @@
 import Link from "@/components/native-link";
 import QRCode from "qrcode";
 import { CertificateDocument } from "@/components/certificate-document";
+import { DownloadCertificatePdf } from "@/components/download-certificate-pdf";
 import { getCertificate, getCertificateDesignTemplate, getCertificateSettings } from "../../../../../db/runtime";
 import PrintButton from "./print-button";
 import { getAdminUser } from "@/app/admin-user";
@@ -23,7 +24,7 @@ export default async function CertificatePrintPage({ params }: PrintProps) {
     : null;
 
   return <main className="print-page">
-    <div className="print-toolbar"><Link href={`/admin/certificates/${id}`}>Back to record</Link><PrintButton /></div>
+    <div className="print-toolbar"><Link href={`/admin/certificates/${id}`}>Back to record</Link><div className="flex flex-wrap items-center gap-3">{!isFinal ? <DownloadCertificatePdf filename={`draft-certificate-${certificate.certification_code.toLowerCase()}-${id}.pdf`} /> : null}<PrintButton /></div></div>
     <CertificateDocument data={certificate} template={template} settings={settings} isFinal={isFinal} qrCode={qrCode} />
   </main>;
 }

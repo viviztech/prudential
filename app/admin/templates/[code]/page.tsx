@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
 import { CertificateDocument } from "@/components/certificate-document";
+import { DownloadCertificatePdf } from "@/components/download-certificate-pdf";
 import { getAdminUser } from "@/app/admin-user";
 import { can } from "@/db/auth";
 import { getCertificateDesignTemplate, getCertificateSettings } from "@/db/runtime";
@@ -72,7 +73,7 @@ export default async function CertificateTemplatePage({ params, searchParams }: 
           </form>
         </CardContent></Card>
       </div>
-      <div className="min-w-0"><div className="mb-3 text-sm font-semibold text-[#607880]">Print preview · A4 portrait · sample company data</div><div className="overflow-x-auto rounded-2xl bg-[#dfe7e7] p-4"><CertificateDocument data={sample} template={template} settings={settings} isFinal={false} preview /></div></div>
+      <div className="min-w-0"><div className="mb-3 flex flex-wrap items-center justify-between gap-3"><span className="text-sm font-semibold text-[#607880]">Print preview · A4 portrait · sample company data</span><DownloadCertificatePdf filename={`preview-${code.toLowerCase()}.pdf`} label="Download preview PDF" /></div><div className="overflow-x-auto rounded-2xl bg-[#dfe7e7] p-4"><CertificateDocument data={sample} template={template} settings={settings} isFinal={false} preview /></div></div>
     </div>
   </>;
 }

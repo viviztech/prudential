@@ -30,6 +30,8 @@ Admins can add a new standard at `/admin/templates/new` with a unique code and c
 
 The organization logo and authorized signature are shared across standards and can be uploaded at `/admin/settings`. Artwork is stored in PostgreSQL. Printed certificates are composed from HTML and CSS without a background image. Drafts show a watermark; the signature and verification QR code appear after final copy print.
 
+The template preview and each draft certificate preview include an A4 PDF download. Draft downloads retain their watermark and do not include a signature or verification QR code.
+
 ## Roles
 
 | Role | Access |

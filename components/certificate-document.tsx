@@ -20,16 +20,16 @@ function showDate(value: string | null) {
   });
 }
 
-function CertificateCornerArt() {
+function CertificateCornerArt({ primary, accent }: { primary: string; accent: string }) {
   return <svg className="certificate-designed-art" viewBox="0 0 210 297" preserveAspectRatio="none" aria-hidden="true">
-    <path className="certificate-designed-corner-primary" d="M180 0H210V35L186 11Q180 5 180 0Z" />
-    <path className="certificate-designed-corner-accent" d="M202 27L210 35V48Z" />
-    <path className="certificate-designed-corner-primary" d="M30 297H0V262L24 286Q30 292 30 297Z" />
-    <path className="certificate-designed-corner-accent" d="M8 270L0 262V249Z" />
+    <path fill={primary} d="M180 0H210V35L186 11Q180 5 180 0Z" />
+    <path fill={accent} d="M202 27L210 35V48Z" />
+    <path fill={primary} d="M30 297H0V262L24 286Q30 292 30 297Z" />
+    <path fill={accent} d="M8 270L0 262V249Z" />
     {Array.from({ length: 6 }, (_, row) => Array.from({ length: 7 }, (_, column) =>
-      <circle className="certificate-designed-dot" key={`top-${row}-${column}`} cx={10 + column * 3.4} cy={13 + row * 3.4} r="0.31" />))}
+      <circle fill={primary} opacity="0.42" key={`top-${row}-${column}`} cx={10 + column * 3.4} cy={13 + row * 3.4} r="0.31" />))}
     {Array.from({ length: 6 }, (_, row) => Array.from({ length: 7 }, (_, column) =>
-      <circle className="certificate-designed-dot" key={`bottom-${row}-${column}`} cx={178 + column * 3.4} cy={265 + row * 3.4} r="0.31" />))}
+      <circle fill={primary} opacity="0.42" key={`bottom-${row}-${column}`} cx={178 + column * 3.4} cy={265 + row * 3.4} r="0.31" />))}
   </svg>;
 }
 
@@ -47,7 +47,7 @@ export function CertificateDocument({ data, template, settings, isFinal, qrCode,
   } as CSSProperties;
   const assetVersion = encodeURIComponent(template.updated_at);
   return <article className="final-certificate certificate-designed" style={style} aria-label={`${template.standard_label} certificate`}>
-    <CertificateCornerArt />
+    <CertificateCornerArt primary={template.primary_color} accent={template.accent_color} />
     {!isFinal ? <div className="draft-watermark">{preview ? "PREVIEW" : "DRAFT"}</div> : null}
     <header className="certificate-designed-header">
       <p className="certificate-designed-kicker">{template.standard_label}</p>
