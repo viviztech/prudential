@@ -1,9 +1,9 @@
 import { adminSessionCookieName } from "@/app/admin-user";
 import { authenticate, createSession } from "@/db/auth";
+import { hasSameHostOrigin, seeOther } from "@/lib/http";
 
 export async function POST(request: Request) {
-  const origin = request.headers.get("origin");
-  if (origin && origin !== new URL(request.url).origin) return new Response("Forbidden", { status: 403 });
+  if (!hasSameHostOrigin(request)) return new Response("Forbidden", { status: 403 });
   const form = await request.formData();
   const password = String(form.get("password") ?? "");
   const email = String(form.get("email") ?? "");
@@ -11,14 +11,14 @@ export async function POST(request: Request) {
 
   const user = await authenticate(email, password);
   if (!user) {
-    return Response.redirect(new URL(`/login?error=invalid&return_to=${encodeURIComponent(returnTo)}`, request.url), 303);
+    return seeOther(`/login?error=invalid&return_to=${encodeURIComponent(returnTo)}`);
   }
 
   const token = await createSession(user.id);
   return new Response(null, {
     status: 303,
     headers: {
-      Location: new URL(returnTo, request.url).toString(),
+      Location: returnTo,
       "Set-Cookie": `${adminSessionCookieName()}=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=28800${process.env.NODE_ENV === "production" ? "; Secure" : ""}`,
     },
   });

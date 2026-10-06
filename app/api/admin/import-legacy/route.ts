@@ -1,5 +1,6 @@
 import { getAdminApiUser } from "../../../admin-user";
 import { can } from "@/db/auth";
+import { seeOther } from "@/lib/http";
 import { importLegacyCertificates, type LegacyRecord } from "../../../../db/runtime";
 
 export async function POST(request: Request) {
@@ -17,8 +18,8 @@ export async function POST(request: Request) {
       throw new Error("The import file is invalid.");
     }
     await importLegacyCertificates(payload.records);
-    return Response.redirect(new URL("/admin/settings?imported=1", request.url), 303);
+    return seeOther("/admin/settings?imported=1");
   } catch {
-    return Response.redirect(new URL("/admin/settings?error=1", request.url), 303);
+    return seeOther("/admin/settings?error=1");
   }
 }

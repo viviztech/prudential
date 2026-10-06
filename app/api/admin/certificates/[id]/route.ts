@@ -1,6 +1,7 @@
 import { getAdminApiUser } from "../../../../admin-user";
 import { setCertificateStatus } from "../../../../../db/runtime";
 import { can } from "@/db/auth";
+import { seeOther } from "@/lib/http";
 
 type RouteProps = { params: Promise<{ id: string }> };
 
@@ -15,8 +16,8 @@ export async function POST(request: Request, { params }: RouteProps) {
   const checklist = ["applicationChecked", "legalChecked", "continuityChecked", "documentationChecked"].map((name) => form.has(name));
   try {
     await setCertificateStatus(id, action, issueDate || undefined, checklist);
-    return Response.redirect(new URL(`/admin/certificates/${id}`, request.url), 303);
+    return seeOther(`/admin/certificates/${id}`);
   } catch {
-    return Response.redirect(new URL(`/admin/certificates/${id}?error=1`, request.url), 303);
+    return seeOther(`/admin/certificates/${id}?error=1`);
   }
 }

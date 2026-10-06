@@ -1,4 +1,5 @@
 import { createEnquiry } from "../../../db/runtime";
+import { seeOther } from "@/lib/http";
 
 function textValue(form: FormData, key: string): string {
   return String(form.get(key) ?? "").trim();
@@ -32,5 +33,5 @@ export async function POST(request: Request) {
     notes: values.notes || null,
   });
 
-  return Response.redirect(new URL("/enquire?submitted=1", request.url), 303);
+  return seeOther("/enquire?submitted=1");
 }

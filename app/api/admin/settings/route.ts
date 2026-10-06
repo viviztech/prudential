@@ -1,6 +1,7 @@
 import { getAdminApiUser } from "../../../admin-user";
 import { updateCertificateSettings } from "../../../../db/runtime";
 import { can } from "@/db/auth";
+import { seeOther } from "@/lib/http";
 
 function value(form: FormData, key: string) {
   return String(form.get(key) ?? "").trim();
@@ -22,8 +23,8 @@ export async function POST(request: Request) {
     signatory_title: value(form, "signatoryTitle"),
   };
   if (!settings.brand_name || !settings.registration_heading || !settings.intro_wording || !settings.conformity_wording || !settings.footer_wording || !settings.signatory_title) {
-    return Response.redirect(new URL("/admin/settings?error=1", request.url), 303);
+    return seeOther("/admin/settings?error=1");
   }
   await updateCertificateSettings(settings);
-  return Response.redirect(new URL("/admin/settings?saved=1", request.url), 303);
+  return seeOther("/admin/settings?saved=1");
 }

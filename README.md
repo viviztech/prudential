@@ -38,5 +38,5 @@ Admins manage users at `/admin/users`. Every user can change their password at `
 ```bash
 npm run build
 npm run lint
-node --test tests/rendered-html.test.mjs tests/certificate-dates.test.mjs
+node --test tests/rendered-html.test.mjs tests/certificate-dates.test.mjs tests/http-redirect.test.mjs
 ```

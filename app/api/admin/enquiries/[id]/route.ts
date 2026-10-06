@@ -1,6 +1,7 @@
 import { getAdminApiUser } from "../../../../admin-user";
 import { can } from "@/db/auth";
 import { updateEnquiry } from "../../../../../db/runtime";
+import { seeOther } from "@/lib/http";
 
 function textValue(form: FormData, key: string) {
   return String(form.get(key) ?? "").trim();
@@ -29,7 +30,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   const returnUrl = new URL(`/admin/enquiries/detail?id=${encodeURIComponent(id)}`, request.url);
   if (invalid) {
     returnUrl.searchParams.set("error", "invalid");
-    return Response.redirect(returnUrl, 303);
+    return seeOther(returnUrl.pathname + returnUrl.search);
   }
   try {
     await updateEnquiry(id, {
@@ -43,9 +44,9 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
       notes: values.notes || null,
     });
     returnUrl.searchParams.set("saved", "1");
-    return Response.redirect(returnUrl, 303);
+    return seeOther(returnUrl.pathname + returnUrl.search);
   } catch {
     returnUrl.searchParams.set("error", "save");
-    return Response.redirect(returnUrl, 303);
+    return seeOther(returnUrl.pathname + returnUrl.search);
   }
 }

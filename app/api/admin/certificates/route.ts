@@ -1,6 +1,7 @@
 import { getAdminApiUser } from "../../../admin-user";
 import { createCertificateFromEnquiry, createCertificates } from "../../../../db/runtime";
 import { can } from "@/db/auth";
+import { seeOther } from "@/lib/http";
 
 export async function POST(request: Request) {
   const user = await getAdminApiUser();
@@ -11,7 +12,7 @@ export async function POST(request: Request) {
   const certificationIds = form.getAll("certificationIds").map(Number);
   if (!certificationIds.length) {
     const destination = enquiryId ? `/admin/enquiries/detail?id=${encodeURIComponent(enquiryId)}&error=1` : "/admin/certificates/new?error=1";
-    return Response.redirect(new URL(destination, request.url), 303);
+    return seeOther(destination);
   }
   try {
     const id = enquiryId
@@ -29,9 +30,9 @@ export async function POST(request: Request) {
           continuityChecked: form.has("continuityChecked"),
           documentationChecked: form.has("documentationChecked"),
         });
-    return Response.redirect(new URL(`/admin/certificates/${id}`, request.url), 303);
+    return seeOther(`/admin/certificates/${id}`);
   } catch {
     const destination = enquiryId ? `/admin/enquiries/detail?id=${encodeURIComponent(enquiryId)}&error=1` : "/admin/certificates/new?error=1";
-    return Response.redirect(new URL(destination, request.url), 303);
+    return seeOther(destination);
   }
 }
