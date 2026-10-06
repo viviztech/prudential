@@ -12,23 +12,26 @@ async function render(pathname = "/") {
   );
 }
 
-test("app entry opens the certificate workspace", async () => {
-  const response = await render("/");
-  assert.equal(response.status, 307);
-  assert.equal(response.headers.get("location"), "/admin");
+test("app entry opens the public marketing page", async () => {
+  const [response, admin] = await Promise.all([render("/"), render("/admin")]);
+  assert.equal(response.status, 200);
+  assert.match(await response.text(), /Choose the certification your business can use/);
+  assert.equal(admin.status, 307);
+  assert.match(admin.headers.get("location") ?? "", /^\/login\?/);
 });
 
-test("unused site modules redirect to the certificate workflow", async () => {
+test("public certification guides and enquiry remain available", async () => {
   const [directory, guide, enquiry] = await Promise.all([
     render("/certifications"),
     render("/certifications/iso-9001-quality-management"),
     render("/enquire"),
   ]);
-  assert.equal(directory.status, 307);
-  assert.equal(guide.status, 307);
-  assert.equal(enquiry.status, 307);
-  assert.equal(directory.headers.get("location"), "/admin");
-  assert.equal(enquiry.headers.get("location"), "/admin/certificates/new");
+  assert.equal(directory.status, 200);
+  assert.equal(guide.status, 200);
+  assert.equal(enquiry.status, 200);
+  assert.match(await directory.text(), /Find the standard that fits the work/);
+  assert.match(await guide.text(), /ISO 9001/);
+  assert.match(await enquiry.text(), /Tell us about your company/);
 });
 
 test("login explains the database requirement and verification stays public", async () => {

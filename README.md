@@ -2,6 +2,8 @@
 
 A multi-user certificate workflow built with React 19, Vinext, Tailwind CSS 4, and PostgreSQL.
 
+The public marketing site opens at `/`. Team members sign in at `/login` to reach the certificate workspace at `/admin`.
+
 ## Run locally
 
 1. Start PostgreSQL. In this Windows workspace, run `npm.cmd run db:local:start`.
