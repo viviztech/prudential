@@ -1,4 +1,13 @@
-import postgres, { type Sql } from "postgres";
+import postgresWorkerd, { type Sql } from "postgres";
+import { createRequire } from "node:module";
+
+let postgresNode: typeof postgresWorkerd | undefined;
+
+function postgresFactory(): typeof postgresWorkerd {
+  if (process.env.NODE_ENV !== "production") return postgresWorkerd;
+  postgresNode ??= Reflect.apply(createRequire(import.meta.url), undefined, ["postgres"]) as typeof postgresWorkerd;
+  return postgresNode;
+}
 
 type Row = Record<string, unknown>;
 
@@ -6,7 +15,7 @@ export function getPostgresClient(): Sql {
   const connectionString = process.env.DATABASE_URL;
   if (!connectionString) throw new Error("DATABASE_URL is not configured.");
 
-  return postgres(connectionString, {
+  return postgresFactory()(connectionString, {
     max: 1,
     connect_timeout: 10,
     prepare: true,
