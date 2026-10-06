@@ -1,24 +1,16 @@
-import { createRequire } from "node:module";
-import type { Sql } from "postgres";
-
-const nodeRequire = createRequire(import.meta.url);
-const postgres = Reflect.apply(nodeRequire, undefined, ["postgres"]) as typeof import("postgres");
+import postgres, { type Sql } from "postgres";
 
 type Row = Record<string, unknown>;
-
-let client: Sql | undefined;
 
 export function getPostgresClient(): Sql {
   const connectionString = process.env.DATABASE_URL;
   if (!connectionString) throw new Error("DATABASE_URL is not configured.");
 
-  client ??= postgres(connectionString, {
-    max: 10,
-    idle_timeout: 20,
+  return postgres(connectionString, {
+    max: 1,
     connect_timeout: 10,
     prepare: true,
   });
-  return client;
 }
 
 class PreparedQuery {
@@ -46,9 +38,14 @@ class PreparedQuery {
     return { meta: { changes: rows.count } };
   }
 
-  async execute<T extends Row>(sql: Sql = getPostgresClient()) {
+  async execute<T extends Row>(sql?: Sql) {
+    const client = sql ?? getPostgresClient();
     const query = normalizeSql(this.statement);
-    return sql.unsafe<T[]>(query, this.parameters as never[]) as Promise<T[] & { count: number }>;
+    try {
+      return await client.unsafe<T[]>(query, this.parameters as never[]) as T[] & { count: number };
+    } finally {
+      if (!sql) await client.end();
+    }
   }
 }
 
@@ -58,13 +55,18 @@ export const database = {
   },
 
   async batch(statements: PreparedQuery[]) {
-    return getPostgresClient().begin(async (transaction) => {
-      const results = [];
-      for (const statement of statements) {
-        results.push(await statement.execute(transaction as unknown as Sql));
-      }
-      return results;
-    });
+    const client = getPostgresClient();
+    try {
+      return await client.begin(async (transaction) => {
+        const results = [];
+        for (const statement of statements) {
+          results.push(await statement.execute(transaction as unknown as Sql));
+        }
+        return results;
+      });
+    } finally {
+      await client.end();
+    }
   },
 };
 

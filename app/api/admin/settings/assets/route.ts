@@ -1,10 +1,13 @@
 import { getAdminApiUser } from "../../../../admin-user";
 import { putCertificateAsset } from "../../../../../db/runtime";
+import { can } from "@/db/auth";
 
 const allowedTypes = new Set(["image/png", "image/jpeg", "image/webp"]);
 
 export async function POST(request: Request) {
-  if (!(await getAdminApiUser())) return new Response("Unauthorized", { status: 401 });
+  const user = await getAdminApiUser();
+  if (!user) return new Response("Unauthorized", { status: 401 });
+  if (!can(user, "settings")) return new Response("Forbidden", { status: 403 });
   const form = await request.formData();
   const kind = String(form.get("kind") ?? "");
   const asset = form.get("asset");

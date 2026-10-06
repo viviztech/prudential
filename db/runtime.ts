@@ -1,6 +1,7 @@
 import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { CERTIFICATION_CATALOG } from "../lib/certifications";
+import { calculateCertificateDates } from "../lib/certificate-dates";
 import { database } from "./postgres";
 
 const schemaStatements = [
@@ -52,6 +53,11 @@ const schemaStatements = [
     third_surveillance_date TEXT,
     expiry_date TEXT,
     printed_at TEXT,
+    application_checked INTEGER NOT NULL DEFAULT 0,
+    legal_checked INTEGER NOT NULL DEFAULT 0,
+    continuity_checked INTEGER NOT NULL DEFAULT 0,
+    documentation_checked INTEGER NOT NULL DEFAULT 0,
+    draft_sent_at TEXT,
     created_at TEXT NOT NULL,
     FOREIGN KEY (company_id) REFERENCES companies(id),
     FOREIGN KEY (certification_id) REFERENCES certifications(id)
@@ -95,6 +101,21 @@ const schemaStatements = [
     signature_key TEXT,
     updated_at TEXT NOT NULL
   )`,
+  `CREATE TABLE IF NOT EXISTS admin_users (
+    id TEXT PRIMARY KEY NOT NULL,
+    name TEXT NOT NULL,
+    email TEXT NOT NULL UNIQUE,
+    role TEXT NOT NULL CHECK (role IN ('admin', 'operator', 'reviewer', 'viewer')),
+    password_hash TEXT NOT NULL,
+    active INTEGER NOT NULL DEFAULT 1,
+    created_at TEXT NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS admin_sessions (
+    token_hash TEXT PRIMARY KEY NOT NULL,
+    user_id TEXT NOT NULL REFERENCES admin_users(id) ON DELETE CASCADE,
+    expires_at TEXT NOT NULL
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_admin_sessions_user ON admin_sessions(user_id)`,
 ];
 
 export type EnquiryRecord = {
@@ -140,6 +161,11 @@ export type CertificateRecord = {
   third_surveillance_date: string | null;
   expiry_date: string | null;
   printed_at: string | null;
+  application_checked: number;
+  legal_checked: number;
+  continuity_checked: number;
+  documentation_checked: number;
+  draft_sent_at: string | null;
   created_at: string;
   legacy_source_row: number | null;
   legacy_certificate_number: string | null;
@@ -192,19 +218,25 @@ export type LegacyRecord = {
   expiry_date: string | null;
 };
 
-let databaseReady: Promise<void> | undefined;
+let databaseReady = false;
 
-export function ensureDatabase() {
-  databaseReady ??= initializeDatabase().catch((error) => {
-    databaseReady = undefined;
+export async function ensureDatabase() {
+  if (databaseReady) return;
+  try {
+    await initializeDatabase();
+    databaseReady = true;
+  } catch (error) {
     console.error("[database] Failed to initialize PostgreSQL schema.", error);
     throw error;
-  });
-  return databaseReady;
+  }
 }
 
 async function initializeDatabase() {
   await database.batch(schemaStatements.map((sql) => database.prepare(sql)));
+  for (const column of ["application_checked", "legal_checked", "continuity_checked", "documentation_checked"]) {
+    await database.prepare(`ALTER TABLE certificates ADD COLUMN IF NOT EXISTS ${column} INTEGER NOT NULL DEFAULT 0`).run();
+  }
+  await database.prepare(`ALTER TABLE certificates ADD COLUMN IF NOT EXISTS draft_sent_at TEXT`).run();
   await database.batch(
     CERTIFICATION_CATALOG.map(({ name, code, prefix }) =>
       database.prepare(
@@ -286,33 +318,58 @@ export async function listCertifications() {
   return result.results;
 }
 
-export async function createCertificateFromEnquiry(enquiryId: string, certificationId: number) {
+export type NewCertificateInput = {
+  companyName: string; address: string; scope: string; email: string;
+  mobile: string; contactPerson: string; certificationIds: number[];
+  applicationChecked: boolean; legalChecked: boolean;
+  continuityChecked: boolean; documentationChecked: boolean;
+  enquiryId?: string;
+};
+
+export async function createCertificates(input: NewCertificateInput) {
   await ensureDatabase();
-  const enquiry = await getEnquiry(enquiryId);
-  if (!enquiry) throw new Error("Enquiry not found.");
-
+  const ids = [...new Set(input.certificationIds)];
+  if (!input.companyName.trim() || !input.address.trim() || !input.scope.trim() ||
+      !input.email.trim() || !input.mobile.trim() || !input.contactPerson.trim() ||
+      !input.email.includes("@") || !ids.length || ids.some((id) => !Number.isInteger(id))) {
+    throw new Error("Complete the company information and select at least one standard.");
+  }
+  const available = await listCertifications();
+  if (ids.some((id) => !available.some((item) => item.id === id))) throw new Error("Invalid standard.");
   const companyId = crypto.randomUUID();
-  const certificateId = crypto.randomUUID();
+  const certificateIds = ids.map(() => crypto.randomUUID());
   const now = new Date().toISOString();
-
-  await database.batch([
+  const checklist = [input.applicationChecked, input.legalChecked, input.continuityChecked, input.documentationChecked].map(Number);
+  const statements = [
     database.prepare(
       `INSERT INTO companies
         (id, name, address, contact_person, mobile, email, created_at)
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
     ).bind(
-      companyId, enquiry.company_name, enquiry.address, enquiry.contact_person,
-      enquiry.mobile, enquiry.email, now,
+      companyId, input.companyName.trim(), input.address.trim(), input.contactPerson.trim(),
+      input.mobile.trim(), input.email.trim(), now,
     ),
-    database.prepare(
+    ...ids.map((certificationId, index) => database.prepare(
       `INSERT INTO certificates
-        (id, company_id, certification_id, scope, status, draft_date, created_at)
-       VALUES (?, ?, ?, ?, 'draft_created', ?, ?)`,
-    ).bind(certificateId, companyId, certificationId, enquiry.scope, now.slice(0, 10), now),
-    database.prepare(`UPDATE enquiries SET status = 'converted' WHERE id = ?`).bind(enquiryId),
-  ]);
+        (id, company_id, certification_id, scope, status, created_at,
+         application_checked, legal_checked, continuity_checked, documentation_checked)
+       VALUES (?, ?, ?, ?, 'draft_created', ?, ?, ?, ?, ?)`,
+    ).bind(certificateIds[index], companyId, certificationId, input.scope.trim(), now, ...checklist)),
+  ];
+  if (input.enquiryId) statements.push(database.prepare(`UPDATE enquiries SET status = 'converted' WHERE id = ?`).bind(input.enquiryId));
+  await database.batch(statements);
+  return certificateIds[0];
+}
 
-  return certificateId;
+export async function createCertificateFromEnquiry(enquiryId: string, certificationIds: number[]) {
+  const enquiry = await getEnquiry(enquiryId);
+  if (!enquiry || enquiry.status === "converted") throw new Error("Enquiry is unavailable.");
+  return createCertificates({
+    companyName: enquiry.company_name, address: enquiry.address, scope: enquiry.scope,
+    email: enquiry.email, mobile: enquiry.mobile, contactPerson: enquiry.contact_person,
+    certificationIds, applicationChecked: false, legalChecked: false,
+    continuityChecked: false, documentationChecked: false, enquiryId,
+  });
 }
 
 export async function listCertificates(options: { query?: string; filter?: "review" | "issued" } = {}) {
@@ -342,6 +399,13 @@ export async function getCertificate(id: string) {
     .bind(id).first<CertificateRecord>();
 }
 
+export async function listCompanyCertificates(companyId: string) {
+  await ensureDatabase();
+  const result = await database.prepare(`${certificateSelectSql} WHERE cert.company_id = ? ORDER BY standard.name`)
+    .bind(companyId).all<CertificateRecord>();
+  return result.results;
+}
+
 export async function findCertificateByNumber(certificateNumber: string) {
   await ensureDatabase();
   return database.prepare(
@@ -349,40 +413,58 @@ export async function findCertificateByNumber(certificateNumber: string) {
   ).bind(certificateNumber).first<CertificateRecord>();
 }
 
-export async function setCertificateStatus(id: string, action: string, issueDate?: string) {
+export async function setCertificateStatus(id: string, action: string, issueDate?: string, checklist?: boolean[]) {
   await ensureDatabase();
+  const certificate = await getCertificate(id);
+  if (!certificate) throw new Error("Certificate not found.");
+  if (action === "checklist") {
+    if (certificate.certificate_number || !["draft_created", "changes_requested"].includes(certificate.status) || !checklist || checklist.length !== 4) throw new Error("Checklist cannot be updated.");
+    await database.prepare(`UPDATE certificates SET application_checked = ?, legal_checked = ?, continuity_checked = ?, documentation_checked = ? WHERE id = ?`)
+      .bind(...checklist.map(Number), id).run();
+    return;
+  }
+  if (action === "draft") {
+    if (certificate.status !== "draft_created" && certificate.status !== "changes_requested") throw new Error("Draft cannot be marked now.");
+    if (![certificate.application_checked, certificate.legal_checked, certificate.continuity_checked, certificate.documentation_checked].every(Boolean)) {
+      throw new Error("Complete the document checklist first.");
+    }
+    await database.prepare(`UPDATE certificates SET status = 'draft_created', draft_date = ? WHERE id = ?`)
+      .bind(new Date().toISOString().slice(0, 10), id).run();
+    return;
+  }
   if (action === "waiting_approval") {
-    await database.prepare(`UPDATE certificates SET status = 'waiting_approval' WHERE id = ?`).bind(id).run();
+    if (!certificate.draft_date || !["draft_created", "changes_requested"].includes(certificate.status)) throw new Error("Mark the draft first.");
+    if (![certificate.application_checked, certificate.legal_checked, certificate.continuity_checked, certificate.documentation_checked].every(Boolean)) throw new Error("Complete the document checklist first.");
+    await database.prepare(`UPDATE certificates SET status = 'waiting_approval', draft_sent_at = ? WHERE id = ?`).bind(new Date().toISOString(), id).run();
     return;
   }
   if (action === "changes_requested") {
+    if (certificate.status !== "waiting_approval") throw new Error("Draft is not awaiting confirmation.");
     await database.prepare(`UPDATE certificates SET status = 'changes_requested' WHERE id = ?`).bind(id).run();
     return;
   }
   if (action === "approve") {
+    if (certificate.status !== "waiting_approval") throw new Error("Draft is not awaiting confirmation.");
     await database.prepare(
       `UPDATE certificates SET status = 'approved', approval_date = ? WHERE id = ?`,
     ).bind(new Date().toISOString().slice(0, 10), id).run();
     return;
   }
-  if (action === "print") {
+  if (action === "print" && certificate.status === "issued") {
+    const settings = await getCertificateSettings();
+    if (!settings.signature_key) throw new Error("Upload a signature before final printing.");
     await database.prepare(
       `UPDATE certificates SET status = 'printed', printed_at = ? WHERE id = ? AND certificate_number IS NOT NULL`,
     ).bind(new Date().toISOString(), id).run();
     return;
   }
-  if (action !== "issue" || !issueDate) throw new Error("Unsupported certificate action.");
+  if (action !== "print" || !issueDate || certificate.status !== "approved" || certificate.certificate_number) throw new Error("Unsupported certificate action.");
+  const settings = await getCertificateSettings();
+  if (!settings.signature_key) throw new Error("Upload a signature before final printing.");
 
-  const certificate = await getCertificate(id);
-  if (!certificate) throw new Error("Certificate not found.");
-  if (certificate.certificate_number) return;
-
-  const issue = parseDate(issueDate);
-  const first = addYears(issue, 1);
-  const second = addYears(issue, 2);
-  const third = addYears(issue, 3);
-  const yy = String(issue.getUTCFullYear()).slice(-2);
-  const mm = String(issue.getUTCMonth() + 1).padStart(2, "0");
+  const dates = calculateCertificateDates(issueDate);
+  const yy = issueDate.slice(2, 4);
+  const mm = issueDate.slice(5, 7);
   const usesGlobalSequence = certificate.certification_code === "20001" || certificate.certification_code === "17024";
   const numberStem = usesGlobalSequence
     ? certificate.certificate_prefix
@@ -416,13 +498,13 @@ export async function setCertificateStatus(id: string, action: string, issueDate
   const number = `${numberStem}${String(counter.last_value).padStart(sequenceLength, "0")}`;
   await database.prepare(
     `UPDATE certificates SET
-      status = 'issued', certificate_number = ?, issue_date = ?,
+      status = 'printed', certificate_number = ?, issue_date = ?, printed_at = ?,
       first_surveillance_date = ?, second_surveillance_date = ?,
       third_surveillance_date = ?, expiry_date = ?
-     WHERE id = ? AND certificate_number IS NULL`,
+     WHERE id = ? AND status = 'approved' AND certificate_number IS NULL`,
   ).bind(
-    number, formatDate(issue), formatDate(first), formatDate(second),
-    formatDate(third), formatDate(third), id,
+    number, dates.issueDate, new Date().toISOString(), dates.firstSurveillanceDate, dates.secondSurveillanceDate,
+    null, dates.expiryDate, id,
   ).run();
 }
 
@@ -476,7 +558,7 @@ export async function getCertificateAsset(kind: "logo" | "signature") {
     return {
       body,
       contentType: contentTypeForKey(key),
-      etag: `\"${details.size}-${Math.trunc(details.mtimeMs)}\"`,
+      etag: `"${details.size}-${Math.trunc(details.mtimeMs)}"`,
     };
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
@@ -571,7 +653,7 @@ export async function getDashboardCounts() {
     count(`SELECT COUNT(*) AS count FROM enquiries WHERE status = 'enquiry'`),
     count(`SELECT COUNT(*) AS count FROM certificates WHERE status = 'waiting_approval'`),
     count(`SELECT COUNT(*) AS count FROM certificates WHERE status IN ('issued', 'printed') AND substr(issue_date, 1, 7) = ?`, new Date().toISOString().slice(0, 7)),
-    count(`SELECT COUNT(*) AS count FROM certificates WHERE status = 'issued'`),
+    count(`SELECT COUNT(*) AS count FROM certificates WHERE status = 'approved'`),
   ]);
   return { enquiries, waiting, issued, printing };
 }
@@ -582,23 +664,6 @@ async function count(sql: string, parameter?: string) {
     ? await query.bind(parameter).first<{ count: number }>()
     : await query.first<{ count: number }>();
   return Number(row?.count ?? 0);
-}
-
-function parseDate(value: string) {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) throw new Error("Issue date is invalid.");
-  const date = new Date(`${value}T00:00:00Z`);
-  if (Number.isNaN(date.getTime())) throw new Error("Issue date is invalid.");
-  return date;
-}
-
-function addYears(date: Date, years: number) {
-  const result = new Date(date);
-  result.setUTCFullYear(result.getUTCFullYear() + years);
-  return result;
-}
-
-function formatDate(date: Date) {
-  return date.toISOString().slice(0, 10);
 }
 
 function assetPath(key: string) {

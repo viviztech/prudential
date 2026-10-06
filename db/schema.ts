@@ -1,5 +1,21 @@
 import { index, integer, pgTable, serial, text, uniqueIndex } from "drizzle-orm/pg-core";
 
+export const adminUsers = pgTable("admin_users", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  email: text("email").notNull().unique(),
+  role: text("role").notNull(),
+  passwordHash: text("password_hash").notNull(),
+  active: integer("active").notNull().default(1),
+  createdAt: text("created_at").notNull(),
+});
+
+export const adminSessions = pgTable("admin_sessions", {
+  tokenHash: text("token_hash").primaryKey(),
+  userId: text("user_id").notNull().references(() => adminUsers.id),
+  expiresAt: text("expires_at").notNull(),
+}, (table) => [index("idx_admin_sessions_user").on(table.userId)]);
+
 export const enquiries = pgTable("enquiries", {
   id: text("id").primaryKey(),
   companyName: text("company_name").notNull(),
@@ -47,6 +63,11 @@ export const certificates = pgTable("certificates", {
   thirdSurveillanceDate: text("third_surveillance_date"),
   expiryDate: text("expiry_date"),
   printedAt: text("printed_at"),
+  applicationChecked: integer("application_checked").notNull().default(0),
+  legalChecked: integer("legal_checked").notNull().default(0),
+  continuityChecked: integer("continuity_checked").notNull().default(0),
+  documentationChecked: integer("documentation_checked").notNull().default(0),
+  draftSentAt: text("draft_sent_at"),
   createdAt: text("created_at").notNull(),
 }, (table) => [
   uniqueIndex("idx_certificates_number").on(table.certificateNumber),

@@ -40,6 +40,8 @@ yarn-error.log*
 /output/
 /tmp/
 /work/
+/.local-postgres-test/
+/tsconfig.tsbuildinfo
 
 # private legacy customer export generated from the source workbook
 /data/legacy-certificates.json

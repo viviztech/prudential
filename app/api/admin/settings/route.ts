@@ -1,12 +1,15 @@
 import { getAdminApiUser } from "../../../admin-user";
 import { updateCertificateSettings } from "../../../../db/runtime";
+import { can } from "@/db/auth";
 
 function value(form: FormData, key: string) {
   return String(form.get(key) ?? "").trim();
 }
 
 export async function POST(request: Request) {
-  if (!(await getAdminApiUser())) return new Response("Unauthorized", { status: 401 });
+  const user = await getAdminApiUser();
+  if (!user) return new Response("Unauthorized", { status: 401 });
+  if (!can(user, "settings")) return new Response("Forbidden", { status: 403 });
   const form = await request.formData();
   const settings = {
     brand_name: value(form, "brandName"),

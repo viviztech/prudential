@@ -1,16 +1,37 @@
 import { getAdminApiUser } from "../../../admin-user";
-import { createCertificateFromEnquiry } from "../../../../db/runtime";
+import { createCertificateFromEnquiry, createCertificates } from "../../../../db/runtime";
+import { can } from "@/db/auth";
 
 export async function POST(request: Request) {
-  if (!(await getAdminApiUser())) return new Response("Unauthorized", { status: 401 });
+  const user = await getAdminApiUser();
+  if (!user) return new Response("Unauthorized", { status: 401 });
+  if (!can(user, "create")) return new Response("Forbidden", { status: 403 });
   const form = await request.formData();
   const enquiryId = String(form.get("enquiryId") ?? "");
-  const certificationId = Number(form.get("certificationId"));
-  if (!enquiryId || !Number.isInteger(certificationId)) return new Response("Invalid certificate details.", { status: 400 });
+  const certificationIds = form.getAll("certificationIds").map(Number);
+  if (!certificationIds.length) {
+    const destination = enquiryId ? `/admin/enquiries/detail?id=${encodeURIComponent(enquiryId)}&error=1` : "/admin/certificates/new?error=1";
+    return Response.redirect(new URL(destination, request.url), 303);
+  }
   try {
-    const id = await createCertificateFromEnquiry(enquiryId, certificationId);
+    const id = enquiryId
+      ? await createCertificateFromEnquiry(enquiryId, certificationIds)
+      : await createCertificates({
+          companyName: String(form.get("companyName") ?? ""),
+          address: String(form.get("address") ?? ""),
+          scope: String(form.get("scope") ?? ""),
+          email: String(form.get("email") ?? ""),
+          mobile: String(form.get("mobile") ?? ""),
+          contactPerson: String(form.get("contactPerson") ?? ""),
+          certificationIds,
+          applicationChecked: form.has("applicationChecked"),
+          legalChecked: form.has("legalChecked"),
+          continuityChecked: form.has("continuityChecked"),
+          documentationChecked: form.has("documentationChecked"),
+        });
     return Response.redirect(new URL(`/admin/certificates/${id}`, request.url), 303);
   } catch {
-    return Response.redirect(new URL(`/admin/enquiries/detail?id=${encodeURIComponent(enquiryId)}&error=1`, request.url), 303);
+    const destination = enquiryId ? `/admin/enquiries/detail?id=${encodeURIComponent(enquiryId)}&error=1` : "/admin/certificates/new?error=1";
+    return Response.redirect(new URL(destination, request.url), 303);
   }
 }

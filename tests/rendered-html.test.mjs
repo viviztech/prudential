@@ -5,67 +5,42 @@ async function render(pathname = "/") {
   const workerUrl = new URL("../dist/server/index.js", import.meta.url);
   workerUrl.searchParams.set("test", `${process.pid}-${Date.now()}-${pathname}`);
   const { default: worker } = await import(workerUrl.href);
-
   return worker.fetch(
-    new Request(`http://localhost${pathname}`, {
-      headers: { accept: "text/html" },
-    }),
-    {
-      ASSETS: {
-        fetch: async () => new Response("Not found", { status: 404 }),
-      },
-    },
-    {
-      waitUntil() {},
-      passThroughOnException() {},
-    },
+    new Request(`http://localhost${pathname}`, { headers: { accept: "text/html" } }),
+    { ASSETS: { fetch: async () => new Response("Not found", { status: 404 }) } },
+    { waitUntil() {}, passThroughOnException() {} },
   );
 }
 
-test("renders the Prudential ISO marketing site", async () => {
-  const response = await render();
-  assert.equal(response.status, 200);
-  assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
-
-  const html = await response.text();
-  assert.match(html, /<title>Certification Standards Explained \| Prudential ISO<\/title>/i);
-  assert.match(html, /Choose the certification your business can use/i);
-  assert.match(html, /ISO\/IEC 27001:2022/);
-  assert.match(html, /Browse all certification guides/i);
+test("app entry opens the certificate workspace", async () => {
+  const response = await render("/");
+  assert.equal(response.status, 307);
+  assert.equal(response.headers.get("location"), "/admin");
 });
 
-test("renders the certification directory and detailed standard guides", async () => {
-  const [directoryResponse, guideResponse] = await Promise.all([
+test("unused site modules redirect to the certificate workflow", async () => {
+  const [directory, guide, enquiry] = await Promise.all([
     render("/certifications"),
     render("/certifications/iso-9001-quality-management"),
+    render("/enquire"),
   ]);
-  assert.equal(directoryResponse.status, 200);
-  assert.equal(guideResponse.status, 200);
-  const [directoryHtml, guideHtml] = await Promise.all([directoryResponse.text(), guideResponse.text()]);
-  assert.match(directoryHtml, /Find the standard that fits the work/i);
-  assert.match(directoryHtml, /Migration guidance/i);
-  assert.match(guideHtml, /ISO 9001 Quality Management System Certification/i);
-  assert.match(guideHtml, /application\/ld\+json/i);
-  assert.match(guideHtml, /Before requesting assessment/i);
+  assert.equal(directory.status, 307);
+  assert.equal(guide.status, 307);
+  assert.equal(enquiry.status, 307);
+  assert.equal(directory.headers.get("location"), "/admin");
+  assert.equal(enquiry.headers.get("location"), "/admin/certificates/new");
 });
 
-test("renders branded login and password recovery screens", async () => {
-  const [loginResponse, recoveryResponse] = await Promise.all([
+test("login explains the database requirement and verification stays public", async () => {
+  const [login, verify, recovery] = await Promise.all([
     render("/login"),
+    render("/verify"),
     render("/forgot-password"),
   ]);
-
-  assert.equal(loginResponse.status, 200);
-  assert.equal(recoveryResponse.status, 200);
-
-  const [loginHtml, recoveryHtml] = await Promise.all([
-    loginResponse.text(),
-    recoveryResponse.text(),
-  ]);
-  assert.match(loginHtml, /Admin login/);
-  assert.match(loginHtml, /Sign in securely/);
-  assert.match(loginHtml, /Forgot password\?/);
-  assert.match(loginHtml, /\/signin-with-chatgpt\?return_to=/);
-  assert.match(recoveryHtml, /Continue to account recovery/);
-  assert.match(recoveryHtml, /secure identity provider/i);
+  assert.equal(login.status, 200);
+  assert.equal(verify.status, 200);
+  assert.equal(recovery.status, 307);
+  assert.match(await login.text(), /PostgreSQL connection/);
+  assert.match(await verify.text(), /Check a certificate/);
+  assert.equal(recovery.headers.get("location"), "/login");
 });

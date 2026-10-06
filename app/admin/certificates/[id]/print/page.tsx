@@ -1,7 +1,9 @@
 import Link from "@/components/native-link";
+import QRCode from "qrcode";
 import { getCertificate, getCertificateSettings } from "../../../../../db/runtime";
 import { getCertificateTemplate } from "../../../../../lib/certificate-templates";
 import PrintButton from "./print-button";
+import { getAdminUser } from "@/app/admin-user";
 
 type PrintProps = { params: Promise<{ id: string }> };
 
@@ -17,6 +19,7 @@ function showDate(value: string | null) {
 
 export default async function CertificatePrintPage({ params }: PrintProps) {
   const { id } = await params;
+  await getAdminUser(`/admin/certificates/${id}/print`);
   const [certificate, settings] = await Promise.all([
     getCertificate(id),
     getCertificateSettings(),
@@ -24,19 +27,24 @@ export default async function CertificatePrintPage({ params }: PrintProps) {
   if (!certificate) return <p>Certificate not found.</p>;
 
   const template = getCertificateTemplate(certificate.certification_code);
-  if (!template) {
-    return (
-      <main className="print-page">
-        <div className="print-toolbar"><Link href={`/admin/certificates/${id}`}>Back to record</Link></div>
-        <section className="certificate-template-missing">
-          <h1>Certificate background not configured</h1>
-          <p>Add and map the background for {certificate.certification_name} before printing this certificate.</p>
-        </section>
-      </main>
-    );
-  }
+  const isFinal = certificate.status === "printed" && Boolean(certificate.certificate_number);
+  const isDraft = !isFinal;
+  const qrCode = isFinal
+    ? await QRCode.toDataURL(`https://prudentialiso.com/verify?certificate=${encodeURIComponent(certificate.certificate_number!)}`, { margin: 1, width: 240 })
+    : null;
 
-  const isDraft = !certificate.certificate_number;
+  if (!template) return <main className="print-page">
+    <div className="print-toolbar"><Link href={`/admin/certificates/${id}`}>Back to record</Link><PrintButton /></div>
+    <article className="final-certificate certificate-generic">
+      {isDraft ? <div className="draft-watermark">DRAFT</div> : null}
+      <div className="certificate-generic-header"><span>{settings.brand_name}</span><h1>{settings.registration_heading}</h1></div>
+      <div className="certificate-generic-body"><p>{settings.intro_wording}</p><h2>{certificate.company_name}</h2><address>{certificate.address}</address><p>{settings.conformity_wording}</p><h3>{certificate.certification_name}</h3><p className="certificate-generic-scope">Scope: {certificate.scope}</p><p>Certificate number: <strong>{certificate.certificate_number ?? "Assigned after final copy print"}</strong></p>
+        <dl><div><dt>Issue date</dt><dd>{showDate(certificate.issue_date)}</dd></div><div><dt>1st surveillance</dt><dd>{showDate(certificate.first_surveillance_date)}</dd></div><div><dt>2nd surveillance</dt><dd>{showDate(certificate.second_surveillance_date)}</dd></div><div><dt>Expiry date</dt><dd>{showDate(certificate.expiry_date)}</dd></div></dl>
+      </div>
+      {isFinal ? <div className="certificate-generic-footer"><div><img src="/api/certificate-assets/signature" alt="Authorized signature" /><span>{settings.signatory_name || settings.signatory_title}</span></div><div><img src={qrCode!} alt="QR code to verify this certificate" /><span>Scan to verify</span></div></div> : null}
+      <p className="certificate-generic-note">{settings.footer_wording}</p>
+    </article>
+  </main>;
 
   return (
     <main className="print-page">
@@ -82,6 +90,10 @@ export default async function CertificatePrintPage({ params }: PrintProps) {
             <div><span>2nd Surveillance Due</span><b>:</b><strong>{showDate(certificate.second_surveillance_date)}</strong></div>
           </section>
         </div>
+        {isFinal ? <div className="certificate-final-authentication">
+          <div className="certificate-final-signature"><img src="/api/certificate-assets/signature" alt="Authorized signature" /><span>{settings.signatory_name || settings.signatory_title}</span></div>
+          <div className="certificate-final-qr"><img src={qrCode!} alt="QR code to verify this certificate" /><span>Scan to verify</span></div>
+        </div> : null}
       </article>
     </main>
   );

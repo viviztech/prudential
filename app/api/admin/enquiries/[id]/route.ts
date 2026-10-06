@@ -1,4 +1,5 @@
 import { getAdminApiUser } from "../../../../admin-user";
+import { can } from "@/db/auth";
 import { updateEnquiry } from "../../../../../db/runtime";
 
 function textValue(form: FormData, key: string) {
@@ -6,7 +7,9 @@ function textValue(form: FormData, key: string) {
 }
 
 export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
-  if (!(await getAdminApiUser())) return new Response("Unauthorized", { status: 401 });
+  const user = await getAdminApiUser();
+  if (!user) return new Response("Unauthorized", { status: 401 });
+  if (!can(user, "settings")) return new Response("Forbidden", { status: 403 });
   const { id } = await context.params;
   const form = await request.formData();
   const values = {
