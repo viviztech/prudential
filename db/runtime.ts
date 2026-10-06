@@ -428,6 +428,9 @@ export type NewCertificateInput = {
 
 export async function createCertificates(input: NewCertificateInput) {
   await ensureDatabase();
+  if (![input.applicationChecked, input.legalChecked, input.continuityChecked, input.documentationChecked].every(Boolean)) {
+    throw new Error("Confirm all four document checklist items before creating certificate records.");
+  }
   const ids = [...new Set(input.certificationIds)];
   if (!input.companyName.trim() || !input.address.trim() || !input.scope.trim() ||
       !input.email.trim() || !input.mobile.trim() || !input.contactPerson.trim() ||
@@ -461,14 +464,14 @@ export async function createCertificates(input: NewCertificateInput) {
   return certificateIds[0];
 }
 
-export async function createCertificateFromEnquiry(enquiryId: string, certificationIds: number[]) {
+export async function createCertificateFromEnquiry(enquiryId: string, certificationIds: number[], checklist: Pick<NewCertificateInput,
+  "applicationChecked" | "legalChecked" | "continuityChecked" | "documentationChecked">) {
   const enquiry = await getEnquiry(enquiryId);
   if (!enquiry || enquiry.status === "converted") throw new Error("Enquiry is unavailable.");
   return createCertificates({
     companyName: enquiry.company_name, address: enquiry.address, scope: enquiry.scope,
     email: enquiry.email, mobile: enquiry.mobile, contactPerson: enquiry.contact_person,
-    certificationIds, applicationChecked: false, legalChecked: false,
-    continuityChecked: false, documentationChecked: false, enquiryId,
+    certificationIds, ...checklist, enquiryId,
   });
 }
 

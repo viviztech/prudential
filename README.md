@@ -17,7 +17,7 @@ Existing deployments with `ADMIN_PASSWORD` and `AUTH_SECRET` automatically creat
 
 ## Certificate workflow
 
-1. Record the application, legal documents, business continuity proof, and documentation checklist.
+1. Confirm the application, legal documents, business continuity proof, and documentation checklist. All four confirmations are required before creating certificate records.
 2. Enter company details and select one or more standards. Each standard creates a certificate record.
 3. Mark draft complete, draft sent, and draft confirmed. A reviewer can request changes.
 4. Print the final copy. Its print date becomes the issue date. Surveillance dates are one and two years later; expiry is three years later. The signature and verification QR code appear only on the final copy.

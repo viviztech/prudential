@@ -10,13 +10,24 @@ export async function POST(request: Request) {
   const form = await request.formData();
   const enquiryId = String(form.get("enquiryId") ?? "");
   const certificationIds = form.getAll("certificationIds").map(Number);
+  const checked = (name: string) => form.get(name) === "on";
+  const checklist = {
+    applicationChecked: checked("applicationChecked"),
+    legalChecked: checked("legalChecked"),
+    continuityChecked: checked("continuityChecked"),
+    documentationChecked: checked("documentationChecked"),
+  };
+  if (!Object.values(checklist).every(Boolean)) {
+    const destination = enquiryId ? `/admin/enquiries/detail?id=${encodeURIComponent(enquiryId)}&error=checklist` : "/admin/certificates/new?error=checklist";
+    return seeOther(destination);
+  }
   if (!certificationIds.length) {
     const destination = enquiryId ? `/admin/enquiries/detail?id=${encodeURIComponent(enquiryId)}&error=1` : "/admin/certificates/new?error=1";
     return seeOther(destination);
   }
   try {
     const id = enquiryId
-      ? await createCertificateFromEnquiry(enquiryId, certificationIds)
+      ? await createCertificateFromEnquiry(enquiryId, certificationIds, checklist)
       : await createCertificates({
           companyName: String(form.get("companyName") ?? ""),
           address: String(form.get("address") ?? ""),
@@ -25,10 +36,7 @@ export async function POST(request: Request) {
           mobile: String(form.get("mobile") ?? ""),
           contactPerson: String(form.get("contactPerson") ?? ""),
           certificationIds,
-          applicationChecked: form.has("applicationChecked"),
-          legalChecked: form.has("legalChecked"),
-          continuityChecked: form.has("continuityChecked"),
-          documentationChecked: form.has("documentationChecked"),
+          ...checklist,
         });
     return seeOther(`/admin/certificates/${id}`);
   } catch {
