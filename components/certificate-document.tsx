@@ -73,9 +73,9 @@ export function CertificateDocument({ data, template, settings, isFinal, qrCode,
 
     <footer className="certificate-designed-footer">
       <div className="certificate-designed-brand">
-        {settings.logo_key ? <img src="/api/certificate-assets/logo" alt="" /> : null}
-        <strong>{settings.brand_name}</strong>
-        <small>Certification &amp; assurance</small>
+        {settings.logo_key
+          ? <img src="/api/certificate-assets/logo" alt={`${settings.brand_name} logo`} />
+          : <strong>{settings.brand_name}</strong>}
       </div>
       <div className="certificate-designed-signatory">
         {isFinal && settings.signature_key ? <img src="/api/certificate-assets/signature" alt="Authorized signature" /> : <span className="certificate-designed-signature-space" />}
