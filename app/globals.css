@@ -952,20 +952,21 @@ footer address a:hover, footer address a:focus-visible { color: var(--teal); tex
 .certificate-designed-dates div { padding:0 1mm; }
 .certificate-designed-dates dt { color:#626873; font-size:2.7mm; text-transform:uppercase; }
 .certificate-designed-dates dd { margin:1.5mm 0 0; color:var(--template-primary); font-size:3.6mm; font-weight:700; }
-.certificate-designed-footer { position:absolute; z-index:1; left:17mm; right:17mm; bottom:28mm; min-height:28mm; display:grid; grid-template-columns:1.15fr 1fr 1.25fr .7fr; align-items:end; gap:5mm; text-align:center; }
-.certificate-designed-brand,.certificate-designed-standard-mark,.certificate-designed-signatory,.certificate-designed-verification { min-width:0; }
-.certificate-designed-brand img { display:block; max-width:29mm; max-height:15mm; margin:0 auto 1mm; object-fit:contain; }
+.certificate-designed-footer { position:absolute; z-index:1; left:16mm; right:16mm; bottom:29mm; min-height:32mm; display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); align-items:end; gap:4mm; text-align:center; }
+.certificate-designed-brand,.certificate-designed-standard-mark,.certificate-designed-signatory,.certificate-designed-accreditation-mark { min-width:0; }
+.certificate-designed-brand img { display:block; width:100%; max-width:40mm; max-height:21mm; margin:0 auto 1mm; object-fit:contain; }
 .certificate-designed-brand strong,.certificate-designed-brand small { display:block; }
 .certificate-designed-brand strong { color:var(--template-primary); font:700 3.9mm/1.2 var(--display); }
 .certificate-designed-brand small { margin-top:1mm; color:#626873; font-size:2.2mm; letter-spacing:.07em; text-transform:uppercase; }
-.certificate-designed-standard-mark { display:flex; flex-direction:column; align-items:center; justify-content:end; gap:2mm; }
-.certificate-designed-standard-mark img { max-width:28mm; max-height:12mm; object-fit:contain; }
+.certificate-designed-standard-mark,.certificate-designed-accreditation-mark { display:flex; align-items:end; justify-content:center; min-height:22mm; }
+.certificate-designed-standard-mark img,.certificate-designed-accreditation-mark img { display:block; width:100%; max-width:39mm; max-height:22mm; object-fit:contain; }
 .certificate-designed-standard-mark strong { color:var(--template-primary); font:700 4.4mm var(--body); }
-.certificate-designed-signatory img,.certificate-designed-signature-space { display:block; width:32mm; height:12mm; margin:auto; object-fit:contain; }
+.certificate-designed-signatory img,.certificate-designed-signature-space { display:block; width:37mm; height:16mm; margin:auto; object-fit:contain; }
 .certificate-designed-signatory strong,.certificate-designed-signatory small,.certificate-designed-verification small { display:block; }
 .certificate-designed-signatory strong { padding-top:1mm; border-top:.25mm solid var(--template-primary); color:var(--template-primary); font-size:3mm; }
 .certificate-designed-signatory small,.certificate-designed-verification small { margin-top:1mm; color:#626873; font-size:2.4mm; }
-.certificate-designed-verification img { display:block; width:18mm; height:18mm; margin:auto; object-fit:contain; }
+.certificate-designed-verification { position:absolute; z-index:2; right:10mm; bottom:7mm; padding:1mm; background:#fff; text-align:center; }
+.certificate-designed-verification img { display:block; width:16mm; height:16mm; margin:auto; object-fit:contain; }
 .certificate-designed-bottom { position:absolute; z-index:1; left:24mm; right:24mm; bottom:11mm; text-align:center; }
 .certificate-designed-bottom span { display:block; color:#3e4552; font-size:2.5mm; }
 .certificate-designed-bottom p { margin:1mm 0 0; color:#626873; font-size:2.3mm; }
