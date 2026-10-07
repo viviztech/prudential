@@ -48,6 +48,7 @@ export function CertificateDocument({ data, template, settings, isFinal, qrCode,
   const assetVersion = encodeURIComponent(template.updated_at);
   return <article className="final-certificate certificate-designed" style={style} aria-label={`${template.standard_label} certificate`}>
     <CertificateCornerArt primary={template.primary_color} accent={template.accent_color} />
+    {settings.logo_key ? <img className="certificate-designed-watermark" src="/api/certificate-assets/logo" alt="" aria-hidden="true" /> : null}
     {!isFinal ? <div className="draft-watermark">{preview ? "PREVIEW" : "DRAFT"}</div> : null}
     <header className="certificate-designed-header">
       <p className="certificate-designed-kicker">{template.standard_label}</p>
