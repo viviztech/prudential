@@ -9,8 +9,9 @@ export function StandardsPicker({ standards }: { standards: StandardOption[] }) 
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<Set<number>>(() => new Set());
   const normalized = query.trim().toLocaleLowerCase();
+  const selectedStandards = standards.filter((standard) => selected.has(standard.id));
   const shown = standards.filter((standard) =>
-    `${standard.name} ${standard.code}`.toLocaleLowerCase().includes(normalized),
+    !selected.has(standard.id) && `${standard.name} ${standard.code}`.toLocaleLowerCase().includes(normalized),
   );
 
   function toggle(id: number, checked: boolean) {
@@ -33,17 +34,24 @@ export function StandardsPicker({ standards }: { standards: StandardOption[] }) 
       </label>
       <span className="rounded-full bg-[#e7f3ef] px-3 py-1.5 text-xs font-bold text-[#086b65]" aria-live="polite">{selected.size} selected</span>
     </div>
-    <div className="mt-3 max-h-80 overflow-y-auto rounded-xl border border-[#dce7e3] bg-white" aria-label="Available standards">
-      {standards.map((standard) => {
-        const visible = shown.some((item) => item.id === standard.id);
-        return <label key={standard.id} className={visible ? "group flex min-h-12 cursor-pointer items-center gap-3 border-b border-[#edf1ef] px-4 py-2.5 last:border-b-0 hover:bg-[#f3f8f6] has-[:checked]:bg-[#eaf5f1]" : "hidden"}>
-          <input type="checkbox" name="certificationIds" value={standard.id} checked={selected.has(standard.id)} onChange={(event) => toggle(standard.id, event.target.checked)} className="size-4 shrink-0 accent-[#08766f]" />
+    {selectedStandards.length ? <div className="mt-4">
+      <p className="mb-2 text-sm font-semibold text-[#0d2a3d]">Selected standards</p>
+      <div className="max-h-48 overflow-y-auto rounded-xl border border-[#8ab9a8] bg-[#f1f8f5]" aria-label="Selected standards">
+        {selectedStandards.map((standard) => <label key={standard.id} className="flex min-h-12 cursor-pointer items-center gap-3 border-b border-[#dcebe4] px-4 py-2.5 last:border-b-0 hover:bg-[#e7f3ef]">
+          <input type="checkbox" name="certificationIds" value={standard.id} checked onChange={(event) => toggle(standard.id, event.target.checked)} className="size-4 shrink-0 accent-[#08766f]" />
           <span className="min-w-0 flex-1 text-sm font-medium text-[#183742]">{standard.name}</span>
           <span className="shrink-0 text-[11px] font-semibold text-[#607880]">{standard.code}</span>
-        </label>;
-      })}
-      {!shown.length ? <p className="px-4 py-6 text-center text-sm text-[#607880]">No matching standards. Try a different name or code.</p> : null}
+        </label>)}
+      </div>
+    </div> : null}
+    <div className="mt-3 max-h-80 overflow-y-auto rounded-xl border border-[#dce7e3] bg-white" aria-label="Available standards">
+      {shown.map((standard) => <label key={standard.id} className="flex min-h-12 cursor-pointer items-center gap-3 border-b border-[#edf1ef] px-4 py-2.5 last:border-b-0 hover:bg-[#f3f8f6]">
+          <input type="checkbox" value={standard.id} checked={false} onChange={(event) => toggle(standard.id, event.target.checked)} className="size-4 shrink-0 accent-[#08766f]" />
+          <span className="min-w-0 flex-1 text-sm font-medium text-[#183742]">{standard.name}</span>
+          <span className="shrink-0 text-[11px] font-semibold text-[#607880]">{standard.code}</span>
+        </label>)}
+      {!shown.length ? <p className="px-4 py-6 text-center text-sm text-[#607880]">{!standards.length ? "No standards available." : normalized ? "No matching available standards. Try a different name or code." : "All standards are selected."}</p> : null}
     </div>
-    <p className="mt-2 text-xs text-[#607880]" aria-live="polite">Showing {shown.length} of {standards.length} standards. Scroll to see more.</p>
+    <p className="mt-2 text-xs text-[#607880]" aria-live="polite">Showing {shown.length} of {standards.length - selected.size} available standards. Scroll to see more.</p>
   </fieldset>;
 }
