@@ -66,10 +66,10 @@ export function CertificateDocument({ data, template, settings, isFinal, qrCode,
       <div className="certificate-designed-number"><span>Certificate number</span><strong>{data.certificate_number ?? "Assigned after final copy print"}</strong></div>
       <p className="certificate-designed-date"><span>Certificate Date :</span> <strong>{showDate(data.issue_date)}</strong></p>
       <dl className="certificate-designed-dates">
-        <div><dt>Issue Date</dt><dd>{showDate(data.issue_date)}</dd></div>
-        <div><dt>1st Surv Date</dt><dd>{showDate(data.first_surveillance_date)}</dd></div>
-        <div><dt>2nd Surv Date</dt><dd>{showDate(data.second_surveillance_date)}</dd></div>
-        <div><dt>Expiry Date</dt><dd>{showDate(data.expiry_date)}</dd></div>
+        <div><dt>ISSUED ON</dt><dd>{showDate(data.issue_date)}</dd></div>
+        <div><dt>1ST SURVEILLANCE</dt><dd>{showDate(data.first_surveillance_date)}</dd></div>
+        <div><dt>2ND SURVEILLANCE</dt><dd>{showDate(data.second_surveillance_date)}</dd></div>
+        <div><dt>VALID TILL</dt><dd>{showDate(data.expiry_date)}</dd></div>
       </dl>
     </div>
 
@@ -93,7 +93,7 @@ export function CertificateDocument({ data, template, settings, isFinal, qrCode,
         </div>
       </div>
       <div className="certificate-designed-bottom">
-        <div className="certificate-designed-bottom-copy"><span>{settings.office_address}</span><p>{template.footer_text}</p></div>
+        <div className="certificate-designed-bottom-copy"><strong>PRUDENTIAL ASSESSMENT SERVICES LLP</strong><span>{settings.office_address}</span><p>{template.footer_text}</p></div>
         {isFinal && qrCode ? <div className="certificate-designed-verification">
           <img src={qrCode} alt="QR code to verify this certificate" />
           <small>Scan to verify</small>

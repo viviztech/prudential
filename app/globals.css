@@ -938,7 +938,7 @@ footer address a:hover, footer address a:focus-visible { color: var(--teal); tex
 .certificate-designed-header { position:relative; z-index:1; width:140mm; margin:27mm auto 0; text-align:center; }
 .certificate-designed-kicker { margin:0; color:var(--template-primary); font-size:3.5mm; font-weight:700; letter-spacing:.23em; text-transform:uppercase; }
 .certificate-designed-header h1 { margin:2mm 0 0; color:var(--template-primary); font:700 calc(11mm - 1pt)/1.12 var(--display); letter-spacing:-.04em; text-transform:uppercase; }
-.certificate-designed-main { position:relative; z-index:1; width:160mm; margin:5mm auto 0; text-align:center; }
+.certificate-designed-main { position:relative; z-index:1; width:160mm; margin:4mm auto 0; text-align:center; }
 .certificate-designed-opening,.certificate-designed-conformity { max-width:148mm; margin:0 auto; color:#3e4552; font-size:3.6mm; line-height:1.4; }
 .certificate-designed-main h2 { max-width:158mm; margin:4mm auto 5mm; color:var(--template-primary); font:700 10mm/1.13 var(--display); letter-spacing:-.035em; text-transform:uppercase; overflow-wrap:anywhere; }
 .certificate-designed-main address { max-width:150mm; margin:0 auto 5mm; color:#3e4552; font-size:calc(3.6mm + 1pt); font-weight:700; font-style:normal; line-height:1.4; white-space:pre-line; }
@@ -947,7 +947,7 @@ footer address a:hover, footer address a:focus-visible { color: var(--teal); tex
 .certificate-designed-scope span,.certificate-designed-number span { display:block; color:var(--template-primary); font-size:2.9mm; font-weight:700; letter-spacing:.15em; text-transform:uppercase; }
 .certificate-designed-scope span { font-size:calc(2.9mm + 1pt); }
 .certificate-designed-scope p { margin:2mm auto 0; color:#333a47; font-size:calc(3.8mm + 1pt); font-weight:700; line-height:1.45; overflow-wrap:anywhere; }
-.certificate-designed-clarification { max-width:144mm; margin:4mm auto 0; color:#555b67; font-size:2.9mm; line-height:1.4; }
+.certificate-designed-clarification { max-width:144mm; margin:2mm auto 0; color:#555b67; font-size:2.9mm; line-height:1.4; }
 .certificate-designed-number { margin-top:6mm; }
 .certificate-designed-number strong { display:block; margin-top:1mm; color:#232b40; font-size:4.2mm; letter-spacing:.05em; }
 .certificate-designed-date { margin:2mm 0 0; color:#626873; font-size:2.9mm; }
@@ -973,6 +973,7 @@ footer address a:hover, footer address a:focus-visible { color: var(--teal); tex
 .certificate-designed-verification small { line-height:1.25; white-space:nowrap; }
 .certificate-designed-bottom { min-height:22mm; display:grid; grid-template-columns:minmax(0,1fr) 20mm; align-items:center; gap:6mm; padding-left:11mm; }
 .certificate-designed-bottom-copy { grid-column:1; grid-row:1; min-width:0; overflow-wrap:anywhere; white-space:pre-line; }
+.certificate-designed-bottom-copy > strong { display:block; margin-bottom:1mm; color:var(--template-primary); font-size:2.8mm; font-weight:700; line-height:1.3; }
 .certificate-designed-bottom-copy span { display:block; color:#3e4552; font-size:2.5mm; line-height:1.4; }
 .certificate-designed-bottom-copy p { margin:1mm 0 0; color:#626873; font-size:2.3mm; line-height:1.4; }
 @media print {
