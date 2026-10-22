@@ -64,11 +64,12 @@ export function CertificateDocument({ data, template, settings, isFinal, qrCode,
       <div className="certificate-designed-scope"><span>{template.scope_heading}</span><p>{data.scope}</p></div>
       <p className="certificate-designed-clarification">{template.clarification_text}</p>
       <div className="certificate-designed-number"><span>Certificate number</span><strong>{data.certificate_number ?? "Assigned after final copy print"}</strong></div>
+      <p className="certificate-designed-date"><span>Certificate Date :</span> <strong>{showDate(data.issue_date)}</strong></p>
       <dl className="certificate-designed-dates">
-        <div><dt>Issue date</dt><dd>{showDate(data.issue_date)}</dd></div>
-        <div><dt>1st surveillance</dt><dd>{showDate(data.first_surveillance_date)}</dd></div>
-        <div><dt>2nd surveillance</dt><dd>{showDate(data.second_surveillance_date)}</dd></div>
-        <div><dt>Expiry date</dt><dd>{showDate(data.expiry_date)}</dd></div>
+        <div><dt>Issue Date</dt><dd>{showDate(data.issue_date)}</dd></div>
+        <div><dt>1st Surv Date</dt><dd>{showDate(data.first_surveillance_date)}</dd></div>
+        <div><dt>2nd Surv Date</dt><dd>{showDate(data.second_surveillance_date)}</dd></div>
+        <div><dt>Expiry Date</dt><dd>{showDate(data.expiry_date)}</dd></div>
       </dl>
     </div>
 
