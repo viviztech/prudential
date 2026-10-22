@@ -2,6 +2,7 @@ import { readFile, stat } from "node:fs/promises";
 import path from "node:path";
 import { CERTIFICATION_CATALOG } from "../lib/certifications";
 import { calculateCertificateDates } from "../lib/certificate-dates";
+import { allocateCertificateNumber } from "../lib/certificate-numbering";
 import { database } from "./postgres";
 
 const TEMPLATE_COLORS: Record<string, [string, string]> = {
@@ -566,39 +567,7 @@ export async function setCertificateStatus(id: string, action: string, issueDate
   if (!settings.signature_key) throw new Error("Upload a signature before final printing.");
 
   const dates = calculateCertificateDates(issueDate);
-  const yy = issueDate.slice(2, 4);
-  const mm = issueDate.slice(5, 7);
-  const usesGlobalSequence = certificate.certification_code === "20001" || certificate.certification_code === "17024";
-  const numberStem = usesGlobalSequence
-    ? certificate.certificate_prefix
-    : `${certificate.certificate_prefix}${yy}${mm}`;
-  const sequenceLength = usesGlobalSequence ? 9 : 4;
-  const counterKey = `certificate-number:${numberStem}`;
-  const existing = await database.prepare(
-    `SELECT COALESCE(MAX(CAST(SUBSTR(certificate_number, ?) AS INTEGER)), 0) AS last_value
-     FROM certificates
-     WHERE certificate_number LIKE ? AND LENGTH(certificate_number) = ?`,
-  ).bind(numberStem.length + 1, `${numberStem}%`, numberStem.length + sequenceLength)
-    .first<{ last_value: number }>();
-
-  await database.prepare(
-    `INSERT INTO certificate_counters (counter_key, last_value) VALUES (?, ?)
-     ON CONFLICT(counter_key) DO UPDATE SET
-       last_value = MAX(certificate_counters.last_value, excluded.last_value)`,
-  ).bind(counterKey, existing?.last_value ?? 0).run();
-
-  const counter = await database.prepare(
-    `UPDATE certificate_counters
-     SET last_value = last_value + 1
-     WHERE counter_key = ?
-     RETURNING last_value`,
-  ).bind(counterKey).first<{ last_value: number }>();
-  if (!counter) throw new Error("Certificate number could not be generated.");
-  if (counter.last_value > 10 ** sequenceLength - 1) {
-    throw new Error("The certificate number sequence has reached its limit.");
-  }
-
-  const number = `${numberStem}${String(counter.last_value).padStart(sequenceLength, "0")}`;
+  const number = await allocateCertificateNumber(database, certificate, issueDate);
   await database.prepare(
     `UPDATE certificates SET
       status = 'printed', certificate_number = ?, issue_date = ?, printed_at = ?,

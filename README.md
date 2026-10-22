@@ -24,6 +24,10 @@ Existing deployments with `ADMIN_PASSWORD` and `AUTH_SECRET` automatically creat
 
 The dashboard shows workflow queues. Public verification remains at `/verify`.
 
+ISO 9001 certificate numbers use `PASQMYYMMXXXX`, with `YYMM` taken from the issue date and a running four-digit serial that continues across months and years. The sequence resumes after `PASQM26100054`: the next October 2026 number is `PASQM26100055`, followed by serial `0056` even if the next issue date is in November.
+
+Earlier PASQM series retain their numbers and do not override this continuation point. Higher serials already used or reserved from October 2026 onward, and values in the shared PASQM counter, take precedence so numbers cannot move backward. Backdated certificates also respect numbers already used or reserved in their selected issue month. Other standards retain their existing numbering rules.
+
 ## Certificate design templates
 
 Admins configure each standard at `/admin/templates`. A template controls its standard name, heading, opening and conformity wording, scope label, clarification and footer, primary and accent colors, standard logo, and accreditation mark. The certificate preview uses sample company data; printed certificates use the company, scope, number, and dates from the actual record.
