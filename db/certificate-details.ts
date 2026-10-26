@@ -76,7 +76,7 @@ function validateDetails(input: CertificateDetailsInput): CertificateDetailsInpu
 }
 
 async function lockCertificate(transaction: DatabaseTransaction, id: string) {
-  const reference = await transaction.prepare(`SELECT company_id FROM certificates WHERE id = ?`)
+  const reference = await transaction.prepare(`SELECT company_id FROM certificates WHERE id = ? AND deleted_at IS NULL`)
     .bind(id).first<{ company_id: string }>();
   if (!reference) throw new Error("Certificate not found.");
 
@@ -96,7 +96,7 @@ async function lockCertificate(transaction: DatabaseTransaction, id: string) {
      JOIN companies company ON company.id = cert.company_id
      JOIN certifications standard ON standard.id = cert.certification_id
      LEFT JOIN certificate_details_snapshots snapshot ON snapshot.certificate_id = cert.id
-     WHERE cert.id = ? FOR UPDATE OF cert`,
+     WHERE cert.id = ? AND cert.deleted_at IS NULL FOR UPDATE OF cert`,
   ).bind(id).first<LockedCertificate>();
   if (!certificate) throw new Error("Certificate not found.");
   return certificate;
@@ -109,7 +109,7 @@ async function snapshotFinalizedSiblings(transaction: DatabaseTransaction, compa
      SELECT cert.id, company.name, company.address, company.contact_person,
        company.mobile, company.email, cert.scope, ?
      FROM certificates cert JOIN companies company ON company.id = cert.company_id
-     WHERE cert.company_id = ?
+     WHERE cert.company_id = ? AND cert.deleted_at IS NULL
        AND (cert.certificate_number IS NOT NULL OR cert.status IN ('issued', 'printed'))
      ON CONFLICT(certificate_id) DO NOTHING`,
   ).bind(new Date().toISOString(), companyId).run();
@@ -182,7 +182,7 @@ export async function updateCertificateDetailsInDatabase(
       `UPDATE certificates SET status = 'draft_created', draft_date = NULL,
         draft_sent_at = NULL, approval_date = NULL
        WHERE ${companyChanged ? "company_id" : "id"} = ?
-         AND certificate_number IS NULL AND status NOT IN ('issued', 'printed')`,
+         AND deleted_at IS NULL AND certificate_number IS NULL AND status NOT IN ('issued', 'printed')`,
     ).bind(companyChanged ? certificate.company_id : id).run();
   });
 }

@@ -8,6 +8,8 @@ import {
   type CertificateDetailsActor, type CertificateDetailsInput,
 } from "./certificate-details";
 import { CERTIFICATE_OUTPUT_SCHEMA } from "./certificate-outputs";
+import { deleteCertificateInDatabase } from "./certificate-deletion";
+import type { AdminUser } from "../lib/certificate-permissions";
 
 const TEMPLATE_COLORS: Record<string, [string, string]> = {
   "9001": ["#3b54a5", "#cb131e"],
@@ -82,6 +84,8 @@ const schemaStatements = [
     continuity_checked INTEGER NOT NULL DEFAULT 0,
     documentation_checked INTEGER NOT NULL DEFAULT 0,
     draft_sent_at TEXT,
+    deleted_at TEXT,
+    deleted_by TEXT,
     created_at TEXT NOT NULL,
     FOREIGN KEY (company_id) REFERENCES companies(id),
     FOREIGN KEY (certification_id) REFERENCES certifications(id)
@@ -306,6 +310,8 @@ async function initializeDatabase() {
     await database.prepare(`ALTER TABLE certificates ADD COLUMN IF NOT EXISTS ${column} INTEGER NOT NULL DEFAULT 0`).run();
   }
   await database.prepare(`ALTER TABLE certificates ADD COLUMN IF NOT EXISTS draft_sent_at TEXT`).run();
+  await database.prepare(`ALTER TABLE certificates ADD COLUMN IF NOT EXISTS deleted_at TEXT`).run();
+  await database.prepare(`ALTER TABLE certificates ADD COLUMN IF NOT EXISTS deleted_by TEXT`).run();
   await database.batch(CERTIFICATE_DETAILS_MIGRATIONS.map((sql) => database.prepare(sql)));
   await database.batch(
     CERTIFICATION_CATALOG.map(({ name, code, prefix }) =>
@@ -545,6 +551,11 @@ export async function updateCertificateDetails(id: string, actor: CertificateDet
   await updateCertificateDetailsInDatabase(database, id, actor, input);
 }
 
+export async function deleteCertificate(id: string, actor: AdminUser): Promise<void> {
+  await ensureDatabase();
+  await deleteCertificateInDatabase(database, id, actor);
+}
+
 export async function getCertificateSettings() {
   await ensureDatabase();
   const settings = await database.prepare(
@@ -738,12 +749,13 @@ export async function importLegacyCertificates(records: LegacyRecord[]) {
 export async function getLegacyImportStats() {
   await ensureDatabase();
   const [records, review, companies] = await Promise.all([
-    count(`SELECT COUNT(*) AS count FROM certificate_legacy`),
+    count(`SELECT COUNT(*) AS count FROM certificate_legacy legacy
+      JOIN certificates cert ON cert.id = legacy.certificate_id WHERE cert.deleted_at IS NULL`),
     count(`SELECT COUNT(*) AS count FROM certificate_legacy legacy
       JOIN certificates cert ON cert.id = legacy.certificate_id
-      WHERE cert.certificate_number IS NULL`),
+      WHERE cert.certificate_number IS NULL AND cert.deleted_at IS NULL`),
     count(`SELECT COUNT(DISTINCT company_id) AS count FROM certificates cert
-      JOIN certificate_legacy legacy ON legacy.certificate_id = cert.id`),
+      JOIN certificate_legacy legacy ON legacy.certificate_id = cert.id WHERE cert.deleted_at IS NULL`),
   ]);
   return { records, review, companies };
 }
@@ -752,9 +764,9 @@ export async function getDashboardCounts() {
   await ensureDatabase();
   const [enquiries, waiting, issued, printing] = await Promise.all([
     count(`SELECT COUNT(*) AS count FROM enquiries WHERE status = 'enquiry'`),
-    count(`SELECT COUNT(*) AS count FROM certificates WHERE status = 'waiting_approval'`),
-    count(`SELECT COUNT(*) AS count FROM certificates WHERE status IN ('issued', 'printed') AND substr(issue_date, 1, 7) = ?`, new Date().toISOString().slice(0, 7)),
-    count(`SELECT COUNT(*) AS count FROM certificates WHERE status = 'approved'`),
+    count(`SELECT COUNT(*) AS count FROM certificates WHERE deleted_at IS NULL AND status = 'waiting_approval'`),
+    count(`SELECT COUNT(*) AS count FROM certificates WHERE deleted_at IS NULL AND status IN ('issued', 'printed') AND substr(issue_date, 1, 7) = ?`, new Date().toISOString().slice(0, 7)),
+    count(`SELECT COUNT(*) AS count FROM certificates WHERE deleted_at IS NULL AND status = 'approved'`),
   ]);
   return { enquiries, waiting, issued, printing };
 }
@@ -802,7 +814,7 @@ const certificateSelectSql = `
     standard.certificate_prefix, legacy.source_row AS legacy_source_row,
     legacy.legacy_certificate_number, legacy.original_standard,
     legacy.associate_name
-  FROM certificates cert
+  FROM (SELECT * FROM certificates WHERE deleted_at IS NULL) cert
   JOIN companies company ON company.id = cert.company_id
   JOIN certifications standard ON standard.id = cert.certification_id
   LEFT JOIN certificate_details_snapshots snapshot ON snapshot.certificate_id = cert.id

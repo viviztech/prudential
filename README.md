@@ -27,6 +27,8 @@ Company name, address, contact details and scope can be edited from the certific
 
 Admins can expand **Edit finalized certificate** on a certificate record to correct its company name, address, contact details or scope. Corrections update only the selected certificate's final copies and verification details. They preserve its number, dates, finalization status and output approvals; other certificates and company drafts are unaffected. Operators remain unable to edit finalized certificates or obtain additional final copies without admin approval.
 
+Admins can expand **Delete certificate** on a record and confirm deletion. Deleted records disappear from certificate lists, dashboards, printing, download requests and public verification, and cannot be edited or printed through an existing link. The database retains a deletion marker and allocated number so the series never reuses a deleted number, including the highest or an imported number. Deleting an unnumbered draft does not consume a serial. Other certificates are unaffected.
+
 Final copies are delivered through a one-use app authorization. A PDF already saved by a user can still be retained or printed outside the app.
 
 The dashboard shows workflow queues. Public verification remains at `/verify`.
@@ -49,7 +51,7 @@ The template preview and each draft certificate preview include an A4 PDF downlo
 
 | Role | Access |
 | --- | --- |
-| Admin | All workflow steps, corrections to finalized certificate details, certificate settings, and user management |
+| Admin | All workflow steps, corrections to finalized certificate details, certificate deletion, certificate settings, and user management |
 | Operator | Create records, complete checklists, prepare/send/confirm drafts, request changes, and finalize certificates; additional final copies require admin approval |
 | Reviewer | Confirm drafts or request changes |
 | Viewer | Read dashboards and certificate records |
@@ -61,7 +63,7 @@ Admins manage users at `/admin/users`. Every user can change their password at `
 ```bash
 npm run build
 npm run lint
-node --test tests/rendered-html.test.mjs tests/certificate-dates.test.mjs tests/http-redirect.test.mjs tests/certificate-numbering.test.mjs tests/certificate-details.test.mjs tests/certificate-outputs.test.mjs tests/certificate-permissions.test.mjs
+node --test tests/rendered-html.test.mjs tests/certificate-dates.test.mjs tests/http-redirect.test.mjs tests/certificate-numbering.test.mjs tests/certificate-details.test.mjs tests/certificate-outputs.test.mjs tests/certificate-permissions.test.mjs tests/certificate-deletion.test.mjs
 ```
 
 Workflow database tests are opt-in through `CERTIFICATE_WORKFLOW_TEST_DATABASE_URL`, restricted to the local PostgreSQL server on port 55434. Run them with `--experimental-transform-types --import ./tests/helpers/register-typescript.mjs`; each suite creates and removes its own isolated schema without using application records.

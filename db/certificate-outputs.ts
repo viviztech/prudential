@@ -141,7 +141,7 @@ export function createCertificateOutputService(options: {
 
   async function certificate(transaction: OutputTransaction, id: string, lock = false) {
     return transaction.prepare(`SELECT id, status, certificate_number, final_output_count
-      FROM certificates WHERE id = ?${lock ? " FOR UPDATE" : ""}`)
+      FROM certificates WHERE id = ? AND deleted_at IS NULL${lock ? " FOR UPDATE" : ""}`)
       .bind(id).first<OutputCertificate>();
   }
 
@@ -158,7 +158,7 @@ export function createCertificateOutputService(options: {
     const final = isFinal(record);
     const count = record ? outputCount(record) : 0;
     const allowedRole = hasOutputRole(user);
-    const request = allowedRole && user.role === "operator"
+    const request = final && allowedRole && user.role === "operator"
       ? await activeRequest(database, certificateId, user.id)
       : null;
     const isAdmin = allowedRole && user.role === "admin";
@@ -227,7 +227,7 @@ export function createCertificateOutputService(options: {
   async function listCertificateOutputRequests(user: AdminUser, filters: { certificateId?: string; pendingOnly?: boolean } = {}) {
     if (!hasOutputRole(user)) return [];
     await ready();
-    const conditions: string[] = [];
+    const conditions: string[] = ["cert.deleted_at IS NULL"];
     const parameters: unknown[] = [];
     if (user.role !== "admin") {
       conditions.push("request.requested_by = ?");
@@ -288,14 +288,18 @@ export function createCertificateOutputService(options: {
   async function consumeCertificateOutputTicket(certificateId: string, user: AdminUser, ticket: string) {
     if (!hasOutputRole(user) || !/^[a-f0-9]{64}$/.test(ticket)) return null;
     await ready();
-    return database.prepare(`UPDATE certificate_output_tickets SET used_at = ?
-      WHERE certificate_id = ? AND user_id = ? AND token_hash = ?
-        AND used_at IS NULL AND expires_at > ?
-        AND EXISTS (SELECT 1 FROM certificates cert WHERE cert.id = certificate_output_tickets.certificate_id
-          AND cert.status = 'printed' AND cert.certificate_number IS NOT NULL)
-      RETURNING id, certificate_id, user_id, mode, request_id, used_at`)
-      .bind(now().toISOString(), certificateId, user.id, await tokenHash(ticket), now().toISOString())
-      .first<ConsumedCertificateOutputTicket>();
+    return database.transaction(async (transaction) => {
+      // Share the certificate row lock with deletion and output claims so a
+      // ticket cannot be consumed after its certificate has been removed.
+      const record = await certificate(transaction, certificateId, true);
+      if (!isFinal(record)) return null;
+      return transaction.prepare(`UPDATE certificate_output_tickets SET used_at = ?
+        WHERE certificate_id = ? AND user_id = ? AND token_hash = ?
+          AND used_at IS NULL AND expires_at > ?
+        RETURNING id, certificate_id, user_id, mode, request_id, used_at`)
+        .bind(now().toISOString(), certificateId, user.id, await tokenHash(ticket), now().toISOString())
+        .first<ConsumedCertificateOutputTicket>();
+    });
   }
 
   return {

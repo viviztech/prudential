@@ -165,6 +165,38 @@ test("PostgreSQL final certificate output authorization and one-time tickets", {
       }
     });
 
+    await t.test("deleted certificates hide their requests and reject existing tickets and approvals without side effects", async () => {
+      const id = await fixture({ count: 1 });
+      const approved = await service.requestCertificateOutput(id, operator);
+      await service.decideCertificateOutputRequest(id, approved.id, admin, "approve");
+      const pending = await service.requestCertificateOutput(id, another);
+      const { ticket } = await service.claimCertificateOutput(id, admin, "download");
+      await sql`UPDATE certificates SET deleted_at='2026-10-26T06:00:00.000Z', deleted_by=${admin.id} WHERE id=${id}`;
+      const before = {
+        certificate: (await sql`SELECT * FROM certificates WHERE id=${id}`)[0],
+        requests: await sql`SELECT * FROM certificate_output_requests WHERE certificate_id=${id} ORDER BY id`,
+        tickets: await sql`SELECT * FROM certificate_output_tickets WHERE certificate_id=${id} ORDER BY id`,
+      };
+      for (const user of [admin, operator, another]) {
+        const access = await service.getCertificateOutputAccess(id, user);
+        assert.equal(access.isFinal, false);
+        assert.equal(access.canClaim, false);
+        assert.equal(access.canRequest, false);
+        assert.equal(access.requiresApproval, false);
+        assert.equal(access.outputCount, 0);
+        assert.equal(access.request, null);
+        assert.deepEqual(await service.listCertificateOutputRequests(user, { certificateId: id }), []);
+        await assert.rejects(service.claimCertificateOutput(id, user, "print"), { code: "not_found" });
+      }
+      await assert.rejects(service.requestCertificateOutput(id, operator), { code: "not_found" });
+      await assert.rejects(service.decideCertificateOutputRequest(id, approved.id, admin, "approve"), { code: "not_found" });
+      await assert.rejects(service.decideCertificateOutputRequest(id, pending.id, admin, "reject"), { code: "not_found" });
+      assert.equal(await service.consumeCertificateOutputTicket(id, admin, ticket), null);
+      assert.deepEqual((await sql`SELECT * FROM certificates WHERE id=${id}`)[0], before.certificate);
+      assert.deepEqual(await sql`SELECT * FROM certificate_output_requests WHERE certificate_id=${id} ORDER BY id`, before.requests);
+      assert.deepEqual(await sql`SELECT * FROM certificate_output_tickets WHERE certificate_id=${id} ORDER BY id`, before.tickets);
+    });
+
     await t.test("admin queue includes names and operators cannot read other operators' requests", async () => {
       const id = await fixture({ count: 1 });
       const own = await service.requestCertificateOutput(id, operator);

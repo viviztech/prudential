@@ -72,6 +72,8 @@ export const certificates = pgTable("certificates", {
   continuityChecked: integer("continuity_checked").notNull().default(0),
   documentationChecked: integer("documentation_checked").notNull().default(0),
   draftSentAt: text("draft_sent_at"),
+  deletedAt: text("deleted_at"),
+  deletedBy: text("deleted_by"),
   createdAt: text("created_at").notNull(),
 }, (table) => [
   uniqueIndex("idx_certificates_number").on(table.certificateNumber),

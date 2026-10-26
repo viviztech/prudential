@@ -140,6 +140,36 @@ test("certificate detail edits, snapshots, finalization and database migration",
       assert.equal(company.name, original.companyName);
     });
 
+    await t.test("deleted drafts and final certificates cannot be edited or moved through workflow", async () => {
+      const { certificates } = await fixture(["approved", "printed"]);
+      for (const certificate of certificates) {
+        await sql`UPDATE certificates SET deleted_at='2026-10-26T06:00:00.000Z', deleted_by=${admin.id} WHERE id=${certificate.id}`;
+        const before = await raw(certificate.id);
+        for (const user of [actor, admin]) {
+          await assert.rejects(edit(database, certificate.id, user,
+            details(certificate, { companyName: "Deleted change", scope: "Deleted scope" })), /not found/);
+        }
+        for (const action of ["checklist", "draft", "waiting_approval", "approve", "changes_requested", "print"]) {
+          await assert.rejects(transition(database, certificate.id, action, "2026-10-26", [true, true, true, true]), /not found/);
+        }
+        assert.deepEqual(await raw(certificate.id), before);
+      }
+    });
+
+    await t.test("editing a shared company leaves deleted sibling drafts and final snapshots untouched", async () => {
+      const { certificates: [current, printed, draft] } = await fixture(["approved", "printed", "approved"]);
+      for (const certificate of [printed, draft]) {
+        await sql`UPDATE certificates SET deleted_at='2026-10-26T06:00:00.000Z', deleted_by=${admin.id} WHERE id=${certificate.id}`;
+      }
+      const printedBefore = await raw(printed.id);
+      const draftBefore = await raw(draft.id);
+      await edit(database, current.id, actor, details(current, { companyName: "Revised active company" }));
+      assert.deepEqual(await raw(printed.id), printedBefore);
+      assert.deepEqual(await raw(draft.id), draftBefore);
+      assert.equal((await sql`SELECT * FROM certificate_details_snapshots WHERE certificate_id=${printed.id}`).length, 0);
+      assertReset(await raw(current.id));
+    });
+
     await t.test("admins correct only the selected finalized document and preserve workflow, dates and copy approvals", async () => {
       for (const status of ["printed", "issued"]) {
         const { companyId, certificates: [certificate, sibling, draft] } = await fixture([status, "printed", "approved"]);
