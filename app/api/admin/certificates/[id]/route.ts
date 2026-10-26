@@ -1,11 +1,12 @@
 import { getAdminApiUser } from "../../../../admin-user";
 import { setCertificateStatus } from "../../../../../db/runtime";
 import { can } from "@/db/auth";
-import { seeOther } from "@/lib/http";
+import { hasSameHostOrigin, seeOther } from "@/lib/http";
 
 type RouteProps = { params: Promise<{ id: string }> };
 
 export async function POST(request: Request, { params }: RouteProps) {
+  if (!hasSameHostOrigin(request)) return new Response("Forbidden", { status: 403 });
   const user = await getAdminApiUser();
   if (!user) return new Response("Unauthorized", { status: 401 });
   const [{ id }, form] = await Promise.all([params, request.formData()]);

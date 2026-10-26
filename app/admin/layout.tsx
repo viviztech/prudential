@@ -15,6 +15,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     ["Dashboard", "/admin", LayoutDashboard],
     ["Certificates", "/admin/certificates", FileCheck2],
     ["My account", "/admin/profile", UserRound],
+    ...(user.role === "admin" ? [["Download requests", "/admin/print-requests", FileCheck2]] as const : []),
     ...(can(user, "users") ? [["Users", "/admin/users", UsersRound]] as const : []),
     ...(can(user, "settings") ? [["Templates", "/admin/templates", Palette]] as const : []),
     ...(can(user, "settings") ? [["Certificate settings", "/admin/settings", Settings2]] as const : []),

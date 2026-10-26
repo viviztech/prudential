@@ -10,6 +10,22 @@ function postgresFactory(): typeof postgresWorkerd {
 }
 
 type Row = Record<string, unknown>;
+type QueryClient = Pick<Sql, "unsafe">;
+
+export type DatabaseQuery = {
+  bind(...parameters: unknown[]): DatabaseQuery;
+  all<T extends Row>(): Promise<{ results: T[] }>;
+  first<T extends Row>(): Promise<T | null>;
+  run(): Promise<{ meta: { changes: number } }>;
+};
+
+export type DatabaseTransaction = {
+  prepare(statement: string): DatabaseQuery;
+};
+
+export type Database = DatabaseTransaction & {
+  transaction<T>(operation: (transaction: DatabaseTransaction) => Promise<T>): Promise<T>;
+};
 
 export function getPostgresClient(): Sql {
   const connectionString = process.env.DATABASE_URL;
@@ -25,19 +41,19 @@ export function getPostgresClient(): Sql {
 class PreparedQuery {
   private parameters: unknown[] = [];
 
-  constructor(private readonly statement: string) {}
+  constructor(private readonly statement: string, private readonly client?: QueryClient) {}
 
   bind(...parameters: unknown[]) {
     this.parameters = parameters;
     return this;
   }
 
-  async all<T extends Row>() {
+  async all<T extends Row>(): Promise<{ results: T[] }> {
     const rows = await this.execute<T>();
     return { results: [...rows] };
   }
 
-  async first<T extends Row>() {
+  async first<T extends Row>(): Promise<T | null> {
     const rows = await this.execute<T>();
     return rows[0] ?? null;
   }
@@ -47,14 +63,20 @@ class PreparedQuery {
     return { meta: { changes: rows.count } };
   }
 
-  async execute<T extends Row>(sql?: Sql) {
-    const client = sql ?? getPostgresClient();
-    const query = normalizeSql(this.statement);
+  async execute<T extends Row>(sql?: QueryClient) {
+    const boundClient = sql ?? this.client;
+    if (boundClient) return this.executeOn<T>(boundClient);
+    const client = getPostgresClient();
     try {
-      return await client.unsafe<T[]>(query, this.parameters as never[]) as T[] & { count: number };
+      return await this.executeOn<T>(client);
     } finally {
-      if (!sql) await client.end();
+      await client.end();
     }
+  }
+
+  private async executeOn<T extends Row>(client: QueryClient) {
+    const query = normalizeSql(this.statement);
+    return await client.unsafe<T[]>(query, this.parameters as never[]) as T[] & { count: number };
   }
 }
 
@@ -63,13 +85,29 @@ export const database = {
     return new PreparedQuery(statement);
   },
 
+  async transaction<T>(operation: (transaction: DatabaseTransaction) => Promise<T>): Promise<T> {
+    const client = getPostgresClient();
+    try {
+      const result = await client.begin(async (transaction) => ({
+        value: await operation({
+          prepare(statement: string) {
+            return new PreparedQuery(statement, transaction);
+          },
+        }),
+      }));
+      return result.value;
+    } finally {
+      await client.end();
+    }
+  },
+
   async batch(statements: PreparedQuery[]) {
     const client = getPostgresClient();
     try {
       return await client.begin(async (transaction) => {
         const results = [];
         for (const statement of statements) {
-          results.push(await statement.execute(transaction as unknown as Sql));
+          results.push(await statement.execute(transaction));
         }
         return results;
       });

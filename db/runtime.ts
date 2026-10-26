@@ -1,9 +1,13 @@
 import { readFile, stat } from "node:fs/promises";
 import path from "node:path";
 import { CERTIFICATION_CATALOG } from "../lib/certifications";
-import { calculateCertificateDates } from "../lib/certificate-dates";
-import { allocateCertificateNumber } from "../lib/certificate-numbering";
 import { database } from "./postgres";
+import {
+  CERTIFICATE_DETAILS_MIGRATIONS, CERTIFICATE_DETAILS_SCHEMA,
+  setCertificateStatusInDatabase, updateCertificateDetailsInDatabase,
+  type CertificateDetailsActor, type CertificateDetailsInput,
+} from "./certificate-details";
+import { CERTIFICATE_OUTPUT_SCHEMA } from "./certificate-outputs";
 
 const TEMPLATE_COLORS: Record<string, [string, string]> = {
   "9001": ["#3b54a5", "#cb131e"],
@@ -63,6 +67,7 @@ const schemaStatements = [
     certification_id INTEGER NOT NULL,
     scope TEXT NOT NULL,
     certificate_number TEXT,
+    final_output_count INTEGER NOT NULL DEFAULT 0,
     status TEXT NOT NULL DEFAULT 'draft_created',
     draft_date TEXT,
     approval_date TEXT,
@@ -87,6 +92,7 @@ const schemaStatements = [
     ON certificates(status)`,
   `CREATE INDEX IF NOT EXISTS idx_certificates_expiry
     ON certificates(expiry_date)`,
+  ...CERTIFICATE_DETAILS_SCHEMA,
   `CREATE TABLE IF NOT EXISTS certificate_counters (
     counter_key TEXT PRIMARY KEY NOT NULL,
     last_value INTEGER NOT NULL DEFAULT 0
@@ -156,6 +162,7 @@ const schemaStatements = [
     expires_at TEXT NOT NULL
   )`,
   `CREATE INDEX IF NOT EXISTS idx_admin_sessions_user ON admin_sessions(user_id)`,
+  ...CERTIFICATE_OUTPUT_SCHEMA,
 ];
 
 export type EnquiryRecord = {
@@ -192,6 +199,7 @@ export type CertificateRecord = {
   certificate_prefix: string;
   scope: string;
   certificate_number: string | null;
+  final_output_count: number;
   status: string;
   draft_date: string | null;
   approval_date: string | null;
@@ -275,15 +283,20 @@ export type LegacyRecord = {
 };
 
 let databaseReady = false;
+let databaseInitialization: Promise<void> | undefined;
 
 export async function ensureDatabase() {
   if (databaseReady) return;
+  if (databaseInitialization) return databaseInitialization;
+  databaseInitialization = initializeDatabase();
   try {
-    await initializeDatabase();
+    await databaseInitialization;
     databaseReady = true;
   } catch (error) {
     console.error("[database] Failed to initialize PostgreSQL schema.", error);
     throw error;
+  } finally {
+    databaseInitialization = undefined;
   }
 }
 
@@ -293,6 +306,7 @@ async function initializeDatabase() {
     await database.prepare(`ALTER TABLE certificates ADD COLUMN IF NOT EXISTS ${column} INTEGER NOT NULL DEFAULT 0`).run();
   }
   await database.prepare(`ALTER TABLE certificates ADD COLUMN IF NOT EXISTS draft_sent_at TEXT`).run();
+  await database.batch(CERTIFICATE_DETAILS_MIGRATIONS.map((sql) => database.prepare(sql)));
   await database.batch(
     CERTIFICATION_CATALOG.map(({ name, code, prefix }) =>
       database.prepare(
@@ -482,7 +496,7 @@ export async function listCertificates(options: { query?: string; filter?: "revi
   const bindings: string[] = [];
   const query = options.query?.trim();
   if (query) {
-    conditions.push(`(UPPER(company.name) LIKE UPPER(?) OR UPPER(COALESCE(cert.certificate_number, legacy.legacy_certificate_number, '')) LIKE UPPER(?))`);
+    conditions.push(`(UPPER(COALESCE(snapshot.company_name, company.name)) LIKE UPPER(?) OR UPPER(COALESCE(cert.certificate_number, legacy.legacy_certificate_number, '')) LIKE UPPER(?))`);
     bindings.push(`%${query}%`, `%${query}%`);
   }
   if (options.filter === "review") conditions.push(`cert.certificate_number IS NULL AND legacy.certificate_id IS NOT NULL`);
@@ -519,65 +533,16 @@ export async function findCertificateByNumber(certificateNumber: string) {
 
 export async function setCertificateStatus(id: string, action: string, issueDate?: string, checklist?: boolean[]) {
   await ensureDatabase();
-  const certificate = await getCertificate(id);
-  if (!certificate) throw new Error("Certificate not found.");
-  if (action === "checklist") {
-    if (certificate.certificate_number || !["draft_created", "changes_requested"].includes(certificate.status) || !checklist || checklist.length !== 4) throw new Error("Checklist cannot be updated.");
-    await database.prepare(`UPDATE certificates SET application_checked = ?, legal_checked = ?, continuity_checked = ?, documentation_checked = ? WHERE id = ?`)
-      .bind(...checklist.map(Number), id).run();
-    return;
-  }
-  if (action === "draft") {
-    if (certificate.status !== "draft_created" && certificate.status !== "changes_requested") throw new Error("Draft cannot be marked now.");
-    if (![certificate.application_checked, certificate.legal_checked, certificate.continuity_checked, certificate.documentation_checked].every(Boolean)) {
-      throw new Error("Complete the document checklist first.");
-    }
-    await database.prepare(`UPDATE certificates SET status = 'draft_created', draft_date = ? WHERE id = ?`)
-      .bind(new Date().toISOString().slice(0, 10), id).run();
-    return;
-  }
-  if (action === "waiting_approval") {
-    if (!certificate.draft_date || !["draft_created", "changes_requested"].includes(certificate.status)) throw new Error("Mark the draft first.");
-    if (![certificate.application_checked, certificate.legal_checked, certificate.continuity_checked, certificate.documentation_checked].every(Boolean)) throw new Error("Complete the document checklist first.");
-    await database.prepare(`UPDATE certificates SET status = 'waiting_approval', draft_sent_at = ? WHERE id = ?`).bind(new Date().toISOString(), id).run();
-    return;
-  }
-  if (action === "changes_requested") {
-    if (certificate.status !== "waiting_approval") throw new Error("Draft is not awaiting confirmation.");
-    await database.prepare(`UPDATE certificates SET status = 'changes_requested' WHERE id = ?`).bind(id).run();
-    return;
-  }
-  if (action === "approve") {
-    if (certificate.status !== "waiting_approval") throw new Error("Draft is not awaiting confirmation.");
-    await database.prepare(
-      `UPDATE certificates SET status = 'approved', approval_date = ? WHERE id = ?`,
-    ).bind(new Date().toISOString().slice(0, 10), id).run();
-    return;
-  }
-  if (action === "print" && certificate.status === "issued") {
+  if (action === "print") {
     const settings = await getCertificateSettings();
     if (!settings.signature_key) throw new Error("Upload a signature before final printing.");
-    await database.prepare(
-      `UPDATE certificates SET status = 'printed', printed_at = ? WHERE id = ? AND certificate_number IS NOT NULL`,
-    ).bind(new Date().toISOString(), id).run();
-    return;
   }
-  if (action !== "print" || !issueDate || certificate.status !== "approved" || certificate.certificate_number) throw new Error("Unsupported certificate action.");
-  const settings = await getCertificateSettings();
-  if (!settings.signature_key) throw new Error("Upload a signature before final printing.");
+  await setCertificateStatusInDatabase(database, id, action, issueDate, checklist);
+}
 
-  const dates = calculateCertificateDates(issueDate);
-  const number = await allocateCertificateNumber(database, certificate, issueDate);
-  await database.prepare(
-    `UPDATE certificates SET
-      status = 'printed', certificate_number = ?, issue_date = ?, printed_at = ?,
-      first_surveillance_date = ?, second_surveillance_date = ?,
-      third_surveillance_date = ?, expiry_date = ?
-     WHERE id = ? AND status = 'approved' AND certificate_number IS NULL`,
-  ).bind(
-    number, dates.issueDate, new Date().toISOString(), dates.firstSurveillanceDate, dates.secondSurveillanceDate,
-    null, dates.expiryDate, id,
-  ).run();
+export async function updateCertificateDetails(id: string, actor: CertificateDetailsActor, input: CertificateDetailsInput): Promise<void> {
+  await ensureDatabase();
+  await updateCertificateDetailsInDatabase(database, id, actor, input);
 }
 
 export async function getCertificateSettings() {
@@ -722,16 +687,25 @@ export async function importLegacyCertificates(records: LegacyRecord[]) {
           `INSERT OR IGNORE INTO certificates
             (id, company_id, certification_id, scope, certificate_number, status,
              draft_date, issue_date, first_surveillance_date, second_surveillance_date,
-             third_surveillance_date, expiry_date, created_at)
-           SELECT ?, ?, id, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+             third_surveillance_date, expiry_date, created_at, final_output_count)
+           SELECT ?, ?, id, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
            FROM certifications WHERE code = ?`,
         ).bind(
           record.certificate_id, record.company_id, record.scope,
           record.certificate_number, record.status, record.draft_date,
           record.issue_date, record.first_surveillance_date,
           record.second_surveillance_date, record.third_surveillance_date,
-          record.expiry_date, new Date().toISOString(), record.standard_code,
+          record.expiry_date, new Date().toISOString(), record.certificate_number !== null ? 1 : 0, record.standard_code,
         ),
+        database.prepare(
+          `INSERT INTO certificate_details_snapshots
+            (certificate_id, company_name, address, contact_person, mobile, email, scope, created_at)
+           SELECT ?, ?, ?, ?, ?, ?, ?, ? FROM certificates
+           WHERE id = ? AND certificate_number IS NOT NULL
+           ON CONFLICT(certificate_id) DO NOTHING`,
+        ).bind(record.certificate_id, record.company_name, record.address,
+          record.contact_person || "Not recorded", record.mobile || "Not recorded", record.email,
+          record.scope, new Date().toISOString(), record.certificate_id),
         database.prepare(
           `INSERT OR IGNORE INTO certificate_legacy
             (certificate_id, source_sheet, source_row, associate_name,
@@ -818,8 +792,12 @@ function contentTypeForKey(key: string) {
 }
 
 const certificateSelectSql = `
-  SELECT cert.*, company.name AS company_name, company.address,
-    company.contact_person, company.mobile, company.email,
+  SELECT cert.*, COALESCE(snapshot.scope, cert.scope) AS scope,
+    COALESCE(snapshot.company_name, company.name) AS company_name,
+    COALESCE(snapshot.address, company.address) AS address,
+    COALESCE(snapshot.contact_person, company.contact_person) AS contact_person,
+    COALESCE(snapshot.mobile, company.mobile) AS mobile,
+    CASE WHEN snapshot.certificate_id IS NOT NULL THEN snapshot.email ELSE company.email END AS email,
     standard.name AS certification_name, standard.code AS certification_code,
     standard.certificate_prefix, legacy.source_row AS legacy_source_row,
     legacy.legacy_certificate_number, legacy.original_standard,
@@ -827,5 +805,6 @@ const certificateSelectSql = `
   FROM certificates cert
   JOIN companies company ON company.id = cert.company_id
   JOIN certifications standard ON standard.id = cert.certification_id
+  LEFT JOIN certificate_details_snapshots snapshot ON snapshot.certificate_id = cert.id
   LEFT JOIN certificate_legacy legacy ON legacy.certificate_id = cert.id
 `;

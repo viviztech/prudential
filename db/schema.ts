@@ -1,4 +1,5 @@
 import { customType, index, integer, pgTable, serial, text, uniqueIndex } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 
 const bytea = customType<{ data: Uint8Array; driverData: Uint8Array }>({ dataType: () => "bytea" });
 
@@ -56,6 +57,7 @@ export const certificates = pgTable("certificates", {
   certificationId: integer("certification_id").notNull().references(() => certifications.id),
   scope: text("scope").notNull(),
   certificateNumber: text("certificate_number"),
+  finalOutputCount: integer("final_output_count").notNull().default(0),
   status: text("status").notNull().default("draft_created"),
   draftDate: text("draft_date"),
   approvalDate: text("approval_date"),
@@ -76,6 +78,44 @@ export const certificates = pgTable("certificates", {
   index("idx_certificates_status").on(table.status),
   index("idx_certificates_expiry").on(table.expiryDate),
 ]);
+
+export const certificateDetailsSnapshots = pgTable("certificate_details_snapshots", {
+  certificateId: text("certificate_id").primaryKey().references(() => certificates.id),
+  companyName: text("company_name").notNull(),
+  address: text("address").notNull(),
+  contactPerson: text("contact_person").notNull(),
+  mobile: text("mobile").notNull(),
+  email: text("email"),
+  scope: text("scope").notNull(),
+  createdAt: text("created_at").notNull(),
+});
+
+export const certificateOutputRequests = pgTable("certificate_output_requests", {
+  id: text("id").primaryKey(),
+  certificateId: text("certificate_id").notNull().references(() => certificates.id),
+  requestedBy: text("requested_by").notNull().references(() => adminUsers.id),
+  status: text("status").notNull().default("pending"),
+  requestedAt: text("requested_at").notNull(),
+  decidedBy: text("decided_by").references(() => adminUsers.id),
+  decidedAt: text("decided_at"),
+  usedAt: text("used_at"),
+}, (table) => [
+  uniqueIndex("idx_certificate_output_requests_active").on(table.certificateId, table.requestedBy)
+    .where(sql`${table.status} IN ('pending', 'approved')`),
+  index("idx_certificate_output_requests_status").on(table.status, table.requestedAt),
+]);
+
+export const certificateOutputTickets = pgTable("certificate_output_tickets", {
+  id: text("id").primaryKey(),
+  certificateId: text("certificate_id").notNull().references(() => certificates.id),
+  userId: text("user_id").notNull().references(() => adminUsers.id),
+  tokenHash: text("token_hash").notNull().unique(),
+  mode: text("mode").notNull(),
+  createdAt: text("created_at").notNull(),
+  expiresAt: text("expires_at").notNull(),
+  usedAt: text("used_at"),
+  requestId: text("request_id").references(() => certificateOutputRequests.id),
+}, (table) => [index("idx_certificate_output_tickets_certificate").on(table.certificateId, table.userId)]);
 
 export const certificateCounters = pgTable("certificate_counters", {
   counterKey: text("counter_key").primaryKey(),
