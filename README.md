@@ -19,7 +19,7 @@ Existing deployments with `ADMIN_PASSWORD` and `AUTH_SECRET` automatically creat
 
 1. Confirm the application, legal documents, business continuity proof, and documentation checklist. All four confirmations are required before creating certificate records.
 2. Enter company details and select one or more standards. Each standard creates a certificate record.
-3. Mark draft complete, draft sent, and draft confirmed. A reviewer can request changes.
+3. Mark draft complete, draft sent, and draft confirmed. Operators, reviewers and admins can confirm a sent draft or request changes. Operators can manage the existing workflow stages until finalization; finalized records cannot be moved back to a draft stage.
 4. Finalize the certificate. Its selected print date becomes the issue date. Surveillance dates are one and two years later; expiry is three years later. Finalization assigns the number and locks its details.
 5. Open the first final PDF or print once. An operator must request admin approval for each additional copy. Admins review requests under **Download requests** and approve one additional copy for the requesting operator. Reprints retain the original number and dates.
 
@@ -48,7 +48,7 @@ The template preview and each draft certificate preview include an A4 PDF downlo
 | Role | Access |
 | --- | --- |
 | Admin | All workflow steps, certificate settings, and user management |
-| Operator | Create records, complete checklists, prepare drafts, and print final copies |
+| Operator | Create records, complete checklists, prepare/send/confirm drafts, request changes, and finalize certificates; additional final copies require admin approval |
 | Reviewer | Confirm drafts or request changes |
 | Viewer | Read dashboards and certificate records |
 
@@ -59,7 +59,7 @@ Admins manage users at `/admin/users`. Every user can change their password at `
 ```bash
 npm run build
 npm run lint
-node --test tests/rendered-html.test.mjs tests/certificate-dates.test.mjs tests/http-redirect.test.mjs tests/certificate-numbering.test.mjs tests/certificate-details.test.mjs tests/certificate-outputs.test.mjs
+node --test tests/rendered-html.test.mjs tests/certificate-dates.test.mjs tests/http-redirect.test.mjs tests/certificate-numbering.test.mjs tests/certificate-details.test.mjs tests/certificate-outputs.test.mjs tests/certificate-permissions.test.mjs
 ```
 
 Workflow database tests are opt-in through `CERTIFICATE_WORKFLOW_TEST_DATABASE_URL`, restricted to the local PostgreSQL server on port 55434. Run them with `--experimental-transform-types --import ./tests/helpers/register-typescript.mjs`; each suite creates and removes its own isolated schema without using application records.

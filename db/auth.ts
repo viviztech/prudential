@@ -1,21 +1,9 @@
 import { database } from "./postgres";
 import { ensureDatabase } from "./runtime";
+import type { AdminUser, Role } from "../lib/certificate-permissions";
 
-export const roles = ["admin", "operator", "reviewer", "viewer"] as const;
-export type Role = (typeof roles)[number];
-export type AdminUser = { id: string; name: string; email: string; role: Role; active: number };
-export type Permission = "create" | "prepare" | "review" | "print" | "users" | "settings";
-
-export function can(user: AdminUser, permission: Permission): boolean {
-  if (user.role === "admin") return true;
-  if (user.role === "operator") return ["create", "prepare", "print"].includes(permission);
-  if (user.role === "reviewer") return permission === "review";
-  return false;
-}
-
-export function validRole(value: string): value is Role {
-  return roles.includes(value as Role);
-}
+export { roles, can, validRole } from "../lib/certificate-permissions";
+export type { Role, AdminUser, Permission } from "../lib/certificate-permissions";
 
 const ITERATIONS = 600_000;
 const SESSION_MS = 8 * 60 * 60 * 1000;
