@@ -15,6 +15,7 @@ test("certificate detail edits, snapshots, finalization and database migration",
     } = await import("../db/certificate-details.ts");
     const runtime = await import("../db/runtime.ts");
     const actor = { id: "test-operator", role: "operator" };
+    const admin = { id: "test-admin", role: "admin" };
     const original = {
       companyName: "Original Company", address: "10 Original Road", contactPerson: "Original Contact",
       mobile: "+919876543210", email: "original@example.com",
@@ -125,16 +126,134 @@ test("certificate detail edits, snapshots, finalization and database migration",
       assert.ok(!matches.some((certificate) => certificate.id === current.id));
     });
 
-    await t.test("rejects finalized edits for operators and administrators", async () => {
+    await t.test("rejects finalized edits for every non-admin role", async () => {
       const { companyId, certificates } = await fixture(["printed", "issued"]);
       for (const certificate of certificates) {
-        for (const role of ["operator", "admin"]) {
+        const before = await raw(certificate.id);
+        for (const role of ["operator", "reviewer", "viewer"]) {
           await assert.rejects(edit(database, certificate.id, { id: `test-${role}`, role },
-            details(certificate, { companyName: "Forbidden change" })), /Finalized certificate/);
+            details(certificate, { companyName: "Forbidden change" })), /Finalized certificate|permission/);
         }
+        assert.deepEqual(await raw(certificate.id), before);
       }
       const [company] = await sql`SELECT name FROM companies WHERE id = ${companyId}`;
       assert.equal(company.name, original.companyName);
+    });
+
+    await t.test("admins correct only the selected finalized document and preserve workflow, dates and copy approvals", async () => {
+      for (const status of ["printed", "issued"]) {
+        const { companyId, certificates: [certificate, sibling, draft] } = await fixture([status, "printed", "approved"]);
+        const before = await raw(certificate.id);
+        const siblingBefore = await runtime.getCertificate(sibling.id);
+        const draftBefore = await runtime.getCertificate(draft.id);
+        const [companyBefore] = await sql`SELECT * FROM companies WHERE id = ${companyId}`;
+        const userId = randomUUID();
+        await sql`INSERT INTO admin_users (id, name, email, role, password_hash, created_at)
+          VALUES (${userId}, 'Output operator', ${`${userId}@example.com`}, 'operator', 'unused', '2026-10-01')`;
+        const requestId = randomUUID();
+        await sql`INSERT INTO certificate_output_requests
+          (id, certificate_id, requested_by, status, requested_at)
+          VALUES (${requestId}, ${certificate.id}, ${userId}, 'approved', '2026-10-03')`;
+        const [requestBefore] = await sql`SELECT * FROM certificate_output_requests WHERE id = ${requestId}`;
+        const corrected = details(certificate, {
+          companyName: `Corrected ${status} Company`, address: "20 Corrected Road", scope: "Corrected final scope",
+          contactPerson: "Corrected Contact", mobile: "+919000000000", email: "",
+        });
+        await edit(database, certificate.id, admin, corrected);
+        assert.deepEqual(await raw(certificate.id), { ...before, scope: corrected.scope });
+        assert.deepEqual(await runtime.getCertificate(sibling.id), siblingBefore);
+        assert.deepEqual(await runtime.getCertificate(draft.id), draftBefore);
+        assert.deepEqual((await sql`SELECT * FROM companies WHERE id = ${companyId}`)[0], companyBefore);
+        assert.deepEqual((await sql`SELECT * FROM certificate_output_requests WHERE id = ${requestId}`)[0], requestBefore);
+        for (const record of [await runtime.getCertificate(certificate.id), await runtime.findCertificateByNumber(certificate.number)]) {
+          assert.equal(record.company_name, corrected.companyName);
+          assert.equal(record.address, corrected.address);
+          assert.equal(record.scope, corrected.scope);
+          assert.equal(record.contact_person, corrected.contactPerson);
+          assert.equal(record.mobile, corrected.mobile);
+          assert.equal(record.email, null);
+          assert.equal(record.certificate_number, before.certificate_number);
+          assert.equal(record.final_output_count, before.final_output_count);
+        }
+        const matches = await runtime.listCertificates({ query: corrected.companyName });
+        assert.ok(matches.some((record) => record.id === certificate.id));
+        assert.ok(!matches.some((record) => record.id === sibling.id || record.id === draft.id));
+      }
+    });
+
+    await t.test("admin corrections use their snapshot after shared draft details diverge, including a null email", async () => {
+      const { certificates: [certificate, draft] } = await fixture(["printed", "approved"], null);
+      const corrected = details(certificate, { address: "Selected final address", email: "" });
+      await edit(database, certificate.id, admin, corrected);
+      await edit(database, draft.id, actor, details(draft, {
+        companyName: "New draft company", address: "New draft address", email: "draft@example.com",
+      }));
+      const before = await runtime.getCertificate(certificate.id);
+      const noMutationDatabase = {
+        ...database,
+        transaction(work) {
+          return database.transaction((transaction) => work({
+            prepare(statement) {
+              const query = transaction.prepare(statement);
+              query.run = async () => { throw new Error("no-op must not mutate"); };
+              return query;
+            },
+          }));
+        },
+      };
+      await edit(noMutationDatabase, certificate.id, admin, corrected);
+      assert.deepEqual(await runtime.getCertificate(certificate.id), before);
+      await edit(database, certificate.id, admin, { ...corrected, scope: "Second correction" });
+      const updated = await runtime.getCertificate(certificate.id);
+      assert.equal(updated.company_name, original.companyName);
+      assert.equal(updated.address, corrected.address);
+      assert.equal(updated.email, null);
+      assert.equal(updated.scope, "Second correction");
+      assert.equal((await runtime.getCertificate(draft.id)).company_name, "New draft company");
+    });
+
+    await t.test("finalized admin corrections validate fields and roll back the snapshot if the scope update fails", async () => {
+      const { certificates: [certificate] } = await fixture(["printed"]);
+      await edit(database, certificate.id, admin, details(certificate, { address: "Prior correction" }));
+      const before = await raw(certificate.id);
+      const [snapshotBefore] = await sql`SELECT * FROM certificate_details_snapshots WHERE certificate_id = ${certificate.id}`;
+      await assert.rejects(edit(database, certificate.id, admin, details(certificate, { scope: " " })), /Complete/);
+      const failingDatabase = {
+        ...database,
+        transaction(work) {
+          return database.transaction((transaction) => work({
+            prepare(statement) {
+              const query = transaction.prepare(statement);
+              if (statement.startsWith("UPDATE certificates SET scope")) {
+                query.run = async () => { throw new Error("simulated correction failure"); };
+              }
+              return query;
+            },
+          }));
+        },
+      };
+      await assert.rejects(edit(failingDatabase, certificate.id, admin,
+        details(certificate, { companyName: "Failed correction", scope: "Failed scope" })), /simulated correction/);
+      assert.deepEqual(await raw(certificate.id), before);
+      assert.deepEqual((await sql`SELECT * FROM certificate_details_snapshots WHERE certificate_id = ${certificate.id}`)[0], snapshotBefore);
+    });
+
+    await t.test("concurrent admin corrections and draft edits preserve each certificate's intended details", async () => {
+      const { certificates: [certificate, draft] } = await fixture(["printed", "approved"]);
+      await Promise.all([
+        edit(database, certificate.id, admin, details(certificate, { companyName: "Corrected final", scope: "Final scope" })),
+        edit(database, draft.id, actor, details(draft, { companyName: "Updated draft", scope: "Draft scope" })),
+      ]);
+      const final = await runtime.getCertificate(certificate.id);
+      const updatedDraft = await runtime.getCertificate(draft.id);
+      assert.equal(final.company_name, "Corrected final");
+      assert.equal(final.scope, "Final scope");
+      assert.equal(final.status, "printed");
+      assert.equal(final.certificate_number, certificate.number);
+      assert.equal(final.final_output_count, 1);
+      assert.equal(updatedDraft.company_name, "Updated draft");
+      assert.equal(updatedDraft.scope, "Draft scope");
+      assertReset(updatedDraft);
     });
 
     await t.test("enforces role and field validation while allowing a blank legacy email", async () => {

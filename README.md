@@ -20,10 +20,12 @@ Existing deployments with `ADMIN_PASSWORD` and `AUTH_SECRET` automatically creat
 1. Confirm the application, legal documents, business continuity proof, and documentation checklist. All four confirmations are required before creating certificate records.
 2. Enter company details and select one or more standards. Each standard creates a certificate record.
 3. Mark draft complete, draft sent, and draft confirmed. Operators, reviewers and admins can confirm a sent draft or request changes. Operators can manage the existing workflow stages until finalization; finalized records cannot be moved back to a draft stage.
-4. Finalize the certificate. Its selected print date becomes the issue date. Surveillance dates are one and two years later; expiry is three years later. Finalization assigns the number and locks its details.
+4. Finalize the certificate. Its selected print date becomes the issue date. Surveillance dates are one and two years later; expiry is three years later. Finalization assigns the number and locks operator editing.
 5. Open the first final PDF or print once. An operator must request admin approval for each additional copy. Admins review requests under **Download requests** and approve one additional copy for the requesting operator. Reprints retain the original number and dates.
 
 Company name, address, contact details and scope can be edited from the certificate record before finalization, including after draft creation or confirmation. Saving changes sends affected drafts back for confirmation. Company changes update other unissued drafts for the same company; finalized certificates retain a snapshot of their issued details. Existing numbered certificates require approval for another operator copy after this update.
+
+Admins can expand **Edit finalized certificate** on a certificate record to correct its company name, address, contact details or scope. Corrections update only the selected certificate's final copies and verification details. They preserve its number, dates, finalization status and output approvals; other certificates and company drafts are unaffected. Operators remain unable to edit finalized certificates or obtain additional final copies without admin approval.
 
 Final copies are delivered through a one-use app authorization. A PDF already saved by a user can still be retained or printed outside the app.
 
@@ -47,7 +49,7 @@ The template preview and each draft certificate preview include an A4 PDF downlo
 
 | Role | Access |
 | --- | --- |
-| Admin | All workflow steps, certificate settings, and user management |
+| Admin | All workflow steps, corrections to finalized certificate details, certificate settings, and user management |
 | Operator | Create records, complete checklists, prepare/send/confirm drafts, request changes, and finalize certificates; additional final copies require admin approval |
 | Reviewer | Confirm drafts or request changes |
 | Viewer | Read dashboards and certificate records |

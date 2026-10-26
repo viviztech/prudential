@@ -85,12 +85,17 @@ async function lockCertificate(transaction: DatabaseTransaction, id: string) {
   await transaction.prepare(`SELECT id FROM companies WHERE id = ? FOR UPDATE`)
     .bind(reference.company_id).first();
   const certificate = await transaction.prepare(
-    `SELECT cert.*, company.name AS company_name, company.address,
-       company.contact_person, company.mobile, company.email,
+    `SELECT cert.*, COALESCE(snapshot.scope, cert.scope) AS scope,
+       COALESCE(snapshot.company_name, company.name) AS company_name,
+       COALESCE(snapshot.address, company.address) AS address,
+       COALESCE(snapshot.contact_person, company.contact_person) AS contact_person,
+       COALESCE(snapshot.mobile, company.mobile) AS mobile,
+       CASE WHEN snapshot.certificate_id IS NOT NULL THEN snapshot.email ELSE company.email END AS email,
        standard.code AS certification_code, standard.certificate_prefix
      FROM certificates cert
      JOIN companies company ON company.id = cert.company_id
      JOIN certifications standard ON standard.id = cert.certification_id
+     LEFT JOIN certificate_details_snapshots snapshot ON snapshot.certificate_id = cert.id
      WHERE cert.id = ? FOR UPDATE OF cert`,
   ).bind(id).first<LockedCertificate>();
   if (!certificate) throw new Error("Certificate not found.");
@@ -132,7 +137,8 @@ export async function updateCertificateDetailsInDatabase(
   const values = validateDetails(input);
   await database.transaction(async (transaction) => {
     const certificate = await lockCertificate(transaction, id);
-    if (certificate.certificate_number || ["issued", "printed"].includes(certificate.status)) {
+    const finalized = Boolean(certificate.certificate_number) || ["issued", "printed"].includes(certificate.status);
+    if (finalized && actor.role !== "admin") {
       throw new Error("Finalized certificate details cannot be changed.");
     }
     const companyChanged = certificate.company_name !== values.companyName
@@ -140,6 +146,26 @@ export async function updateCertificateDetailsInDatabase(
       || certificate.mobile !== values.mobile || (certificate.email ?? "") !== values.email;
     const scopeChanged = certificate.scope !== values.scope;
     if (!companyChanged && !scopeChanged) return;
+
+    if (finalized) {
+      // Corrections belong to this issued document, not the shared company or
+      // its other certificates. Retain numbering, dates, workflow and copy access.
+      await transaction.prepare(
+        `INSERT INTO certificate_details_snapshots
+          (certificate_id, company_name, address, contact_person, mobile, email, scope, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+         ON CONFLICT(certificate_id) DO UPDATE SET
+           company_name = EXCLUDED.company_name, address = EXCLUDED.address,
+           contact_person = EXCLUDED.contact_person, mobile = EXCLUDED.mobile,
+           email = EXCLUDED.email, scope = EXCLUDED.scope`,
+      ).bind(id, values.companyName, values.address, values.contactPerson, values.mobile,
+        values.email || null, values.scope, new Date().toISOString()).run();
+      if (scopeChanged) {
+        await transaction.prepare(`UPDATE certificates SET scope = ? WHERE id = ?`)
+          .bind(values.scope, id).run();
+      }
+      return;
+    }
 
     if (companyChanged) {
       await snapshotFinalizedSiblings(transaction, certificate.company_id);
